@@ -394,13 +394,13 @@ export function CodeEditorPanel(): ReactElement {
       </div>
 
       <div className="h-full" data-monaco-editor>
-        {!workspacePath ? (
-          <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Open a workspace folder to start editing.
-          </div>
-        ) : !activeTab ? (
+        {!activeTab ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
             Select a file from the explorer or use Cmd/Ctrl + P.
+          </div>
+        ) : !workspacePath && !activeTab.path.startsWith('virtual://') ? (
+          <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+            Open a workspace folder to start editing.
           </div>
         ) : (
           <>

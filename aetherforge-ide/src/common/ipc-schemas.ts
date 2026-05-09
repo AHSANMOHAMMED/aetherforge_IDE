@@ -361,6 +361,11 @@ export const PluginInstallFromUrlPayloadSchema = z.object({
   expectedSignature: z.string().optional()
 });
 export const PluginUninstallPayloadSchema = z.object({ id: z.string() });
+export const ExtHostRunBundlePayloadSchema = z.object({
+  pluginId: z.string().min(1),
+  bundlePath: z.string().min(1)
+});
+export const ExtHostStopPayloadSchema = z.object({ pluginId: z.string().min(1) });
 
 // FS
 export const WriteFilePayloadSchema = z.object({

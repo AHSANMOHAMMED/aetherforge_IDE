@@ -34,9 +34,9 @@ export function ShellLayout(props: ShellLayoutProps): ReactElement {
         className="border-border/50 grid h-14 shrink-0 grid-cols-[minmax(220px,1fr)_auto_minmax(220px,1fr)] items-center border-b px-4 backdrop-blur-xl"
         role="banner"
       >
-        <div className="min-w-0">{props.headerLeft}</div>
-        <div>{props.headerCenter}</div>
-        <div className="min-w-0 justify-self-end">{props.headerRight}</div>
+        <div className="relative z-10 min-w-0">{props.headerLeft}</div>
+        <div className="relative z-0 min-w-0">{props.headerCenter}</div>
+        <div className="relative z-10 min-w-0 justify-self-end">{props.headerRight}</div>
       </header>
 
       <main className="flex min-h-0 flex-1 p-2 pb-1" role="main">

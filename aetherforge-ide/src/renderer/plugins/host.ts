@@ -125,5 +125,6 @@ export function createPluginAPI(manifest: PluginManifestRaw): PluginAPI {
  * Removes all commands and views registered by a given plugin.
  */
 export function disposePlugin(pluginId: string): void {
+  void window.electronAPI?.extHostStop?.({ pluginId });
   usePluginRegistry.getState().unregisterPlugin(pluginId);
 }

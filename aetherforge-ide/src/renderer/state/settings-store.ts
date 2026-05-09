@@ -10,6 +10,8 @@ export type AISettingsState = {
   costGuardUsd: number; // hard stop above this per-run
 };
 
+export type PluginExecutionHost = 'worker' | 'utility';
+
 interface SettingsState {
   fontSize: number;
   fontFamily: string;
@@ -27,6 +29,8 @@ interface SettingsState {
   showMinimap: boolean;
   showLineNumbers: boolean;
   reducedMotion: boolean;
+  /** `worker`: full PluginAPI via Comlink in renderer worker. `utility`: isolated process with stub API (experimental). */
+  pluginExecutionHost: PluginExecutionHost;
 
   setFontSize: (size: number) => void;
   setFontFamily: (family: string) => void;
@@ -43,6 +47,7 @@ interface SettingsState {
   setTelemetryEnabled: (v: boolean) => void;
   setShowMinimap: (v: boolean) => void;
   setShowLineNumbers: (v: boolean) => void;
+  setPluginExecutionHost: (host: PluginExecutionHost) => void;
   resetDefaults: () => void;
 }
 
@@ -63,6 +68,7 @@ const DEFAULTS: Omit<
   | 'setTelemetryEnabled'
   | 'setShowMinimap'
   | 'setShowLineNumbers'
+  | 'setPluginExecutionHost'
   | 'resetDefaults'
 > = {
   fontSize: 14,
@@ -83,7 +89,8 @@ const DEFAULTS: Omit<
   telemetryEnabled: false,
   showMinimap: true,
   showLineNumbers: true,
-  reducedMotion: false
+  reducedMotion: false,
+  pluginExecutionHost: 'worker'
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -105,12 +112,13 @@ export const useSettingsStore = create<SettingsState>()(
       setTelemetryEnabled: (v) => set({ telemetryEnabled: v }),
       setShowMinimap: (v) => set({ showMinimap: v }),
       setShowLineNumbers: (v) => set({ showLineNumbers: v }),
+      setPluginExecutionHost: (pluginExecutionHost) => set({ pluginExecutionHost }),
       resetDefaults: () => set({ ...DEFAULTS })
     }),
     {
       name: 'aetherforge-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Partial<SettingsState>;
         if (fromVersion < 2) {
@@ -122,6 +130,9 @@ export const useSettingsStore = create<SettingsState>()(
             system: 'system'
           };
           state.theme = themeMap[String(state.theme)] ?? 'dark';
+        }
+        if (fromVersion < 3) {
+          state.pluginExecutionHost = state.pluginExecutionHost ?? 'worker';
         }
         return { ...DEFAULTS, ...state };
       }

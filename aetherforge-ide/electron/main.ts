@@ -28,6 +28,8 @@ import {
   PluginInstallFromUrlPayloadSchema,
   PluginInstallPayloadSchema,
   PluginUninstallPayloadSchema,
+  ExtHostRunBundlePayloadSchema,
+  ExtHostStopPayloadSchema,
   PreviewAttachViewPayloadSchema,
   PreviewSetBoundsPayloadSchema,
   PreviewStartPayloadSchema,
@@ -403,6 +405,20 @@ function registerIpcHandlers(window: BrowserWindow): void {
   registerHandler(IPCChannels.PluginVerify, PluginUninstallPayloadSchema, async (payload) =>
     pluginService.verify(payload)
   );
+  registerHandler(IPCChannels.ExtHostRunBundle, ExtHostRunBundlePayloadSchema, async (payload) => {
+    const root = path.resolve(pluginService.getPluginsInstallRoot());
+    const bundle = path.resolve(payload.bundlePath);
+    const rel = path.relative(root, bundle);
+    if (rel.startsWith('..') || rel === '') {
+      return { ok: false, error: 'Bundle path must be under the extensions install directory' } as const;
+    }
+    const r = extensionHostService.runPluginBundle(payload.pluginId, bundle);
+    return r.ok ? { ok: true } : { ok: false, error: r.error };
+  });
+  registerHandler(IPCChannels.ExtHostStop, ExtHostStopPayloadSchema, async (payload) => {
+    extensionHostService.stopExtensionHost(payload.pluginId);
+    return { ok: true } as const;
+  });
 
   // Git
   registerHandler<string, unknown>(IPCChannels.GitGetStatus, null, async (workspacePath) =>

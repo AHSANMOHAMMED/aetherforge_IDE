@@ -7,6 +7,8 @@
  * Air-gap respect: if `AETHERFORGE_AIRGAP=1`, all sync operations short-circuit.
  */
 
+import { cloudFetch } from '@/renderer/cloud/cloud-fetch';
+
 export type SyncFileEntry = {
   path: string;
   sha256: string;
@@ -40,9 +42,8 @@ export async function pushManifest(
     return { ok: false, acceptedFiles: 0, uploadUrls: [], note: 'Air-gap mode is active.' };
   }
 
-  const response = await fetch(new URL('/v1/sync/manifest', baseUrl), {
+  const response = await cloudFetch(new URL('/v1/sync/manifest', baseUrl), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ workspaceId, files })
   });
   if (!response.ok) {
@@ -63,6 +64,23 @@ export type LwwConflict = {
 };
 
 /** Last-writer-wins selection for the renderer to surface in UI. */
+export async function confirmSyncBlob(
+  baseUrl: string,
+  payload: { workspaceId: string; path: string; sha256: string; bytes: number }
+): Promise<{ ok: boolean; error?: string }> {
+  if (isAirGap()) {
+    return { ok: false, error: 'Air-gap mode is active.' };
+  }
+  const response = await cloudFetch(new URL('/v1/sync/blob-confirm', baseUrl), {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    return { ok: false, error: `confirm failed: ${response.status}` };
+  }
+  return (await response.json()) as { ok: boolean; error?: string };
+}
+
 export function pickLwwWinner(conflict: LwwConflict): 'local' | 'remote' | 'tie' {
   if (conflict.localUpdatedAt > conflict.remoteUpdatedAt) {
     return 'local';

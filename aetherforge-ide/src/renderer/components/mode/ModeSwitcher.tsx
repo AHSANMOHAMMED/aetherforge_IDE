@@ -89,6 +89,7 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        aria-label="Project settings"
         onClick={() => setMode('settings')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'settings' ? 'bg-slate-400/25 text-slate-100' : 'text-foreground/70 hover:text-foreground'

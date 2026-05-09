@@ -27,6 +27,7 @@ import { useCanvasStore } from './canvas/store';
 import { useSettingsStore } from './state/settings-store';
 import { scanAndLoadPlugins } from './plugins/loader';
 import { hasBridgeCapability } from './runtime/bridge';
+import { useDebugStore } from './debug/dap-store';
 
 const ExportPanel = lazy(() => import('./export/ExportPanel'));
 const WebPreviewPanel = lazy(() => import('./preview/WebPreviewPanel'));
@@ -114,6 +115,21 @@ export default function App(): ReactElement {
       return;
     }
     void scanAndLoadPlugins();
+  }, []);
+
+  /** Playwright-only: toggle breakpoints without native FS (see tests/e2e/breakpoint-toggle.spec.ts). */
+  useEffect(() => {
+    const w = window as unknown as { __AF_E2E__?: boolean };
+    if (!w.__AF_E2E__) return undefined;
+    const handler = (ev: Event): void => {
+      const ce = ev as CustomEvent<{ file: string; line: number }>;
+      if (ce.detail?.file && typeof ce.detail.line === 'number') {
+        useDebugStore.getState().toggleBreakpoint(ce.detail.file, ce.detail.line);
+      }
+    };
+    window.addEventListener('aetherforge:e2e-debug-toggle-breakpoint', handler as EventListener);
+    return () =>
+      window.removeEventListener('aetherforge:e2e-debug-toggle-breakpoint', handler as EventListener);
   }, []);
 
   // Restore the previous session and start auto-persisting future state changes.

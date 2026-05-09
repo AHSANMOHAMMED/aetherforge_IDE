@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { requireAuthPreHandler } from '../auth.js';
 import { recordAudit } from '../audit.js';
 import { getPrisma } from '../db.js';
 
@@ -46,7 +47,7 @@ function fromRecord(record: unknown): OrgPolicy | null {
 }
 
 export async function registerOrgRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/v1/org/:orgId/policy', async (req) => {
+  app.get('/v1/org/:orgId/policy', { preHandler: requireAuthPreHandler }, async (req) => {
     const { orgId } = req.params as { orgId: string };
     const prisma = await getPrisma();
     if (prisma) {
@@ -61,7 +62,7 @@ export async function registerOrgRoutes(app: FastifyInstance): Promise<void> {
     return memoryPolicies.get(orgId) ?? { ...DEFAULT_POLICY, orgId };
   });
 
-  app.put('/v1/org/:orgId/policy', async (req) => {
+  app.put('/v1/org/:orgId/policy', { preHandler: requireAuthPreHandler }, async (req) => {
     const { orgId } = req.params as { orgId: string };
     const body = (req.body ?? {}) as Partial<OrgPolicy>;
     const policy: OrgPolicy = {

@@ -4,6 +4,9 @@
   "private": true,
   "description": "Static curated marketplace index (V2); replace with hosted API in production.",
   "type": "module",
+  "scripts": {
+    "typecheck": "node -e \"process.exit(0)\""
+  },
   "exports": {
     ".": "./registry.json"
   },

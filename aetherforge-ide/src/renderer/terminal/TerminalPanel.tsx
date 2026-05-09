@@ -245,12 +245,15 @@ export function TerminalPanel(): ReactElement {
           </button>
         </div>
       </div>
-      <div ref={hostRef} className="relative h-full w-full p-2" />
-      {!ptyAvailable && (
-        <div className="bg-background/80 text-muted-foreground absolute inset-0 flex items-center justify-center text-xs">
-          Terminal requires the desktop runtime.
-        </div>
-      )}
+      {/* Scoped `relative` so the PTY-unavailable overlay cannot cover sibling panels / the header. */}
+      <div className="relative min-h-0 flex-1">
+        <div ref={hostRef} className="h-full w-full p-2" />
+        {!ptyAvailable && (
+          <div className="bg-background/80 text-muted-foreground absolute inset-0 z-10 flex items-center justify-center text-xs">
+            Terminal requires the desktop runtime.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

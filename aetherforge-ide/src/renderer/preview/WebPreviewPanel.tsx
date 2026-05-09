@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useAppStore } from '../state/app-store';
 import { useCanvasStore } from '../canvas/store';
 import type { CanvasNode } from '../canvas/types';
+import { LivePreviewPanel } from './LivePreviewPanel';
 
 type DevicePreset = { label: string; width: number; height: number };
 
@@ -86,94 +88,126 @@ function renderNode(node: CanvasNode, onClick: (id: string) => void, inspected: 
 
 export default function WebPreviewPanel() {
   const nodes = useCanvasStore((s) => s.nodes);
+  const workspacePath = useAppStore((s) => s.workspacePath);
+  const [surface, setSurface] = useState<'canvas' | 'live'>('canvas');
   const [device, setDevice] = useState<DevicePreset>(DEVICE_PRESETS[2]!);
   const [inspected, setInspected] = useState<string | null>(null);
 
   const inspectedNode = nodes.find((n) => n.id === inspected);
 
   return (
-    <div className="flex h-full overflow-hidden text-slate-200">
-      {/* Main preview area */}
+    <div className="flex h-full min-h-0 overflow-hidden text-slate-200">
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 border-b border-white/10 bg-slate-900/70 px-4 py-2">
-          <span className="mr-2 text-xs text-slate-400">Device</span>
-          {DEVICE_PRESETS.map((d) => (
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-slate-900/70 px-4 py-2">
+          <div className="flex gap-1">
             <button
-              key={d.label}
-              onClick={() => setDevice(d)}
-              className={`rounded px-3 py-1 text-xs transition-colors ${
-                device.label === d.label
-                  ? 'border border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
-                  : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
-              }`}
+              type="button"
+              onClick={() => setSurface('canvas')}
+              className={`rounded px-3 py-1 text-xs ${surface === 'canvas' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:bg-white/10'}`}
             >
-              {d.label} ({d.width}×{d.height})
+              Canvas
             </button>
-          ))}
-          <span className="ml-auto text-xs text-slate-500">
-            {nodes.length} element{nodes.length !== 1 ? 's' : ''}
-          </span>
+            <button
+              type="button"
+              onClick={() => setSurface('live')}
+              className={`rounded px-3 py-1 text-xs ${surface === 'live' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:bg-white/10'}`}
+            >
+              Live app
+            </button>
+          </div>
+          {surface === 'canvas' ? (
+            <>
+              <span className="mx-1 hidden h-4 w-px bg-white/10 sm:inline" aria-hidden />
+              <span className="text-xs text-slate-400">Device</span>
+              {DEVICE_PRESETS.map((d) => (
+                <button
+                  key={d.label}
+                  type="button"
+                  onClick={() => setDevice(d)}
+                  className={`rounded px-3 py-1 text-xs transition-colors ${
+                    device.label === d.label
+                      ? 'border border-cyan-500/40 bg-cyan-500/20 text-cyan-300'
+                      : 'border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  {d.label} ({d.width}×{d.height})
+                </button>
+              ))}
+              <span className="ml-auto text-xs text-slate-500">
+                {nodes.length} element{nodes.length !== 1 ? 's' : ''}
+              </span>
+            </>
+          ) : (
+            <span className="ml-auto text-xs text-slate-500">Vite / npm dev server</span>
+          )}
         </div>
 
-        {/* Canvas frame */}
-        <div className="flex flex-1 items-start justify-center overflow-auto bg-[#070d1a] p-8">
-          <div
-            style={{ width: device.width, height: device.height }}
-            className="relative shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0B1220] shadow-2xl"
-            onClick={() => setInspected(null)}
-          >
-            {nodes.map((node) => renderNode(node, setInspected, inspected))}
-            {nodes.length === 0 && (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                Add components on the canvas to preview them here.
+        {surface === 'live' ? (
+          <div className="min-h-0 flex-1">
+            <LivePreviewPanel workspacePath={workspacePath} />
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-1 items-start justify-center overflow-auto bg-[#070d1a] p-8">
+              <div
+                style={{ width: device.width, height: device.height }}
+                className="relative shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0B1220] shadow-2xl"
+                onClick={() => setInspected(null)}
+              >
+                {nodes.map((node) => renderNode(node, setInspected, inspected))}
+                {nodes.length === 0 && (
+                  <div className="flex h-full items-center justify-center text-sm text-slate-500">
+                    Add components on the canvas to preview them here.
+                  </div>
+                )}
               </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {surface === 'canvas' ? (
+        <div className="flex w-64 shrink-0 flex-col border-l border-white/10 bg-slate-900/80">
+          <div className="border-b border-white/10 px-4 py-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Inspector</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 text-xs text-slate-300">
+            {inspectedNode ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <span className="text-slate-500">ID</span>
+                  <p className="mt-0.5 break-all font-mono text-cyan-300">{inspectedNode.id}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Type</span>
+                  <p className="mt-0.5 font-medium text-slate-200">{inspectedNode.data.componentType}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Label</span>
+                  <p className="mt-0.5">{inspectedNode.data.label}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Position</span>
+                  <p className="mt-0.5">
+                    x: {Math.round(inspectedNode.position.x)}, y: {Math.round(inspectedNode.position.y)}
+                  </p>
+                </div>
+                {Object.entries(inspectedNode.data.props).map(
+                  ([k, v]) =>
+                    v !== undefined && (
+                      <div key={k}>
+                        <span className="text-slate-500">{k}</span>
+                        <p className="mt-0.5 break-all">{String(v)}</p>
+                      </div>
+                    )
+                )}
+              </div>
+            ) : (
+              <p className="text-slate-500">Click an element to inspect it.</p>
             )}
           </div>
         </div>
-      </div>
-
-      {/* Inspector panel */}
-      <div className="flex w-64 shrink-0 flex-col border-l border-white/10 bg-slate-900/80">
-        <div className="border-b border-white/10 px-4 py-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">Inspector</h3>
-        </div>
-        <div className="flex-1 overflow-y-auto p-4 text-xs text-slate-300">
-          {inspectedNode ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <span className="text-slate-500">ID</span>
-                <p className="mt-0.5 break-all font-mono text-cyan-300">{inspectedNode.id}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Type</span>
-                <p className="mt-0.5 font-medium text-slate-200">{inspectedNode.data.componentType}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Label</span>
-                <p className="mt-0.5">{inspectedNode.data.label}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Position</span>
-                <p className="mt-0.5">
-                  x: {Math.round(inspectedNode.position.x)}, y: {Math.round(inspectedNode.position.y)}
-                </p>
-              </div>
-              {Object.entries(inspectedNode.data.props).map(
-                ([k, v]) =>
-                  v !== undefined && (
-                    <div key={k}>
-                      <span className="text-slate-500">{k}</span>
-                      <p className="mt-0.5 break-all">{String(v)}</p>
-                    </div>
-                  )
-              )}
-            </div>
-          ) : (
-            <p className="text-slate-500">Click an element to inspect it.</p>
-          )}
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

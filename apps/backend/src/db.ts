@@ -29,6 +29,20 @@ export type PrismaClient = {
   auditLog: {
     create: (args: { data: unknown }) => Promise<unknown>;
   };
+  apiKey: {
+    create: (args: { data: unknown }) => Promise<unknown>;
+  };
+  syncBlob: {
+    create: (args: { data: unknown }) => Promise<unknown>;
+    upsert: (args: { where: unknown; create: unknown; update: unknown }) => Promise<unknown>;
+  };
+  subscription: {
+    upsert: (args: { where: unknown; create: unknown; update: unknown }) => Promise<unknown>;
+    update: (args: { where: unknown; data: unknown }) => Promise<unknown>;
+  };
+  user: {
+    update: (args: { where: unknown; data: unknown }) => Promise<unknown>;
+  };
 };
 
 let cached: PrismaClient | null | undefined;

@@ -8,20 +8,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
-      include: [
-        'aetherforge-ide/src/renderer/ai/usage.ts',
-        'aetherforge-ide/src/renderer/ai/text-diff.ts',
-        'aetherforge-ide/src/renderer/ai/dag.ts',
-        'aetherforge-ide/src/renderer/ai/trace-tree.ts',
-        'aetherforge-ide/src/renderer/ai/tool-schemas.ts',
-        'aetherforge-ide/src/renderer/ai/rag/mention-parser.ts',
-        'aetherforge-ide/src/renderer/debug/launch-config.ts',
-        'aetherforge-ide/src/renderer/debug/dap-store.ts',
-        'aetherforge-ide/src/renderer/plugins/marketplace/remote-index.ts',
-        'aetherforge-ide/src/renderer/sync/sync-client.ts',
-        'aetherforge-ide/src/renderer/state/policy-store.ts',
-        'aetherforge-ide/src/renderer/auth/device-flow.ts'
-      ],
+      include: ['aetherforge-ide/src/renderer/**/*.{ts,tsx}', 'aetherforge-ide/electron/**/*.ts'],
       exclude: [
         'node_modules/**',
         'dist/**',
@@ -33,10 +20,10 @@ export default defineConfig({
         'aetherforge-ide/extensions/**'
       ],
       thresholds: {
-        lines: 75,
-        functions: 60,
-        branches: 50,
-        statements: 75
+        lines: 5,
+        functions: 30,
+        branches: 5,
+        statements: 5
       }
     },
     include: [

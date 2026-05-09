@@ -1,6 +1,6 @@
 import { AccountPanel } from '../auth/AccountPanel';
 import { PolicyPanel } from '../components/settings/PolicyPanel';
-import { useSettingsStore } from '../state/settings-store';
+import { useSettingsStore, type PluginExecutionHost } from '../state/settings-store';
 
 const FONT_SIZES = [12, 13, 14, 15, 16, 18, 20];
 const AUTO_SAVE_OPTIONS = [
@@ -97,6 +97,37 @@ export default function SettingsPanel() {
               }`}
             >
               {t}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-2">
+        <label className="text-xs font-medium uppercase tracking-wider text-slate-400">
+          Plugin execution
+        </label>
+        <p className="text-xs text-slate-500">
+          Web Worker keeps full IDE API. Utility process isolates bundle code; API is stubbed until the bridge
+          ships.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { id: 'worker' as const, label: 'Web Worker (default)' },
+              { id: 'utility' as const, label: 'Utility process (experimental)' }
+            ] satisfies Array<{ id: PluginExecutionHost; label: string }>
+          ).map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => settings.setPluginExecutionHost(o.id)}
+              className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
+                settings.pluginExecutionHost === o.id
+                  ? 'border-cyan-500/60 bg-cyan-500/10 text-cyan-300'
+                  : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+              }`}
+            >
+              {o.label}
             </button>
           ))}
         </div>

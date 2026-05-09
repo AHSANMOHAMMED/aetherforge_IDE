@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { usePluginRegistry } from './registry';
 import { createPluginAPI, disposePlugin } from './host';
 import { useModalStore } from '@/renderer/state/modal-store';
+import { useSettingsStore } from '@/renderer/state/settings-store';
 
 /**
  * Scans the extensions/installed/ directory via IPC, then loads+activates
@@ -62,6 +63,27 @@ export async function scanAndLoadPlugins(): Promise<void> {
     }
 
     try {
+      const { pluginExecutionHost } = useSettingsStore.getState();
+      const sep = installPath.includes('\\') ? '\\' : '/';
+      const bundlePath =
+        installPath.endsWith('/') || installPath.endsWith('\\')
+          ? `${installPath}${manifest.main}`
+          : `${installPath}${sep}${manifest.main}`;
+
+      if (pluginExecutionHost === 'utility' && window.electronAPI.extHostRunBundle) {
+        const res = await window.electronAPI.extHostRunBundle({
+          pluginId: manifest.id,
+          bundlePath
+        });
+        if (!res.ok) {
+          registry.setPluginStatus(manifest.id, 'error', res.error ?? 'Extension host failed to start');
+          continue;
+        }
+        registry.setPluginStatus(manifest.id, 'loaded');
+        console.info(`[PluginLoader] Loaded plugin (utility): ${manifest.name} v${manifest.version}`);
+        continue;
+      }
+
       const WorkerCtor = (await import('./plugin-worker-runtime.ts?worker')).default;
       const worker = new WorkerCtor();
       const remote = Comlink.wrap<{ activate: (src: string, api: unknown) => Promise<void> }>(worker);

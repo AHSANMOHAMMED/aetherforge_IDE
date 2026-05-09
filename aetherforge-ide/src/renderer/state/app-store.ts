@@ -17,6 +17,7 @@ import type { ElectronAPI, FileNode, GitFileStatusEntry } from '@/common/ipc';
 import type { SidebarTab } from '@/renderer/components/sidebar/types';
 import { useModalStore } from '@/renderer/state/modal-store';
 import { useToastStore } from '@/renderer/state/toast-store';
+import { syncWorkspaceFilesystemWatcher } from '@/renderer/services/workspace-watch';
 
 export type WorkspaceMode =
   | 'code'
@@ -426,10 +427,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     try {
+      const previousPath = get().workspacePath;
       const [tree, gitStatus] = await Promise.all([
         api.readWorkspaceTree(response.path),
         api.getGitStatus(response.path)
       ]);
+      await syncWorkspaceFilesystemWatcher(previousPath, response.path);
       const flatFiles = flattenFiles(tree);
       set({
         workspacePath: response.path,

@@ -25,6 +25,10 @@ function pluginsDir(): string {
   return path.join(app.getPath('userData'), 'extensions', 'installed');
 }
 
+export function getPluginsInstallRoot(): string {
+  return pluginsDir();
+}
+
 async function readManifest(file: string): Promise<PluginManifestRaw | null> {
   try {
     const raw = await readFile(file, 'utf8');

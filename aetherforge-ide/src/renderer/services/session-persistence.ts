@@ -1,5 +1,6 @@
 import localforage from 'localforage';
 import { useAppStore } from '@/renderer/state/app-store';
+import { syncWorkspaceFilesystemWatcher } from '@/renderer/services/workspace-watch';
 
 /**
  * Session persistence: workspace path, open tabs, active tab, mode, sidebar.
@@ -37,6 +38,7 @@ export async function restoreSession(): Promise<void> {
       useAppStore.setState({ workspacePath: stored.workspacePath });
       try {
         await refreshWorkspaceTree();
+        await syncWorkspaceFilesystemWatcher(null, stored.workspacePath);
       } catch {
         // workspace gone? clear
         useAppStore.setState({ workspacePath: null, fileTree: [] });
