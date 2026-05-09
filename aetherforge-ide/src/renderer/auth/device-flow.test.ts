@@ -30,7 +30,10 @@ describe('device-flow client', () => {
     expect(result).toEqual(response);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/v1/auth/device/start'),
-      expect.any(Object)
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({})
+      })
     );
   });
 

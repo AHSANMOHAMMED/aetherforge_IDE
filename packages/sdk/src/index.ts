@@ -46,7 +46,8 @@ export class AetherForgeClient {
   async startDeviceFlow(): Promise<DeviceFlowStart> {
     const res = await fetch(new URL('/v1/auth/device/start', this.baseUrl), {
       method: 'POST',
-      headers: this.headers()
+      headers: this.headers(),
+      body: JSON.stringify({})
     });
     if (!res.ok) throw new Error(`device flow start failed: ${res.status}`);
     return (await res.json()) as DeviceFlowStart;

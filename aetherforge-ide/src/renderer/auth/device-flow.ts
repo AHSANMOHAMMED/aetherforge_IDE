@@ -24,9 +24,11 @@ function getBaseUrl(): string {
 }
 
 export async function startDeviceFlow(): Promise<DeviceFlowStart> {
+  // Fastify rejects `Content-Type: application/json` with an empty body (FST_ERR_CTP_EMPTY_JSON_BODY).
   const res = await fetch(`${getBaseUrl()}/v1/auth/device/start`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({})
   });
   if (!res.ok) {
     throw new Error(`device flow start failed: ${res.status}`);

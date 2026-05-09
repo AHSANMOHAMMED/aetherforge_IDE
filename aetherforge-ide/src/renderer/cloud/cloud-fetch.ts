@@ -12,8 +12,17 @@ export async function cloudFetch(input: string | URL, init: RequestInit = {}): P
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  if (!headers.has('Content-Type') && init.body && !(init.body instanceof FormData)) {
+  const method = (init.method ?? 'GET').toUpperCase();
+  let body = init.body;
+  if (
+    (method === 'POST' || method === 'PUT' || method === 'PATCH') &&
+    headers.get('Content-Type')?.toLowerCase().includes('application/json') &&
+    (body === undefined || body === null)
+  ) {
+    body = '{}';
+  }
+  if (!headers.has('Content-Type') && body && !(body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
-  return fetch(input, { ...init, headers });
+  return fetch(input, { ...init, headers, body });
 }

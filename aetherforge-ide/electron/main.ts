@@ -147,7 +147,11 @@ function createMainWindow(): BrowserWindow {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
-    win.webContents.openDevTools({ mode: 'detach' });
+    // Detached DevTools triggers noisy Chromium CDP warnings (Autofill.*) on Electron 33+.
+    // Opt in: `AF_OPEN_DEVTOOLS=1 npm start` — or open DevTools manually from the View menu / Cmd-Alt-I.
+    if (process.env.AF_OPEN_DEVTOOLS === '1') {
+      win.webContents.openDevTools({ mode: 'detach' });
+    }
   } else {
     win.loadFile(path.join(process.env.DIST ?? path.join(__dirname, '../dist'), 'index.html'));
   }
