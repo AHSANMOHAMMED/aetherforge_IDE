@@ -9,7 +9,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=aetherforge-ide",
+    "start": "concurrently -k -n backend,ide -c blue,magenta \"npm run dev --workspace=@aetherforge/backend\" \"npm run dev --workspace=aetherforge-ide\"",
+    "dev": "npm run start",
+    "dev:ide": "npm run dev --workspace=aetherforge-ide",
+    "dev:backend": "npm run dev --workspace=@aetherforge/backend",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
@@ -28,6 +31,7 @@
     "@commitlint/config-conventional": "^19.6.0",
     "@playwright/test": "^1.59.1",
     "@vitest/coverage-v8": "^2.1.8",
+    "concurrently": "^9.2.1",
     "lefthook": "^1.10.0",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
