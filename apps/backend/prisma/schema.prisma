@@ -1,0 +1,123 @@
+// AetherForge Cloud — Prisma schema (V3 scaffold).
+// Provider is set to PostgreSQL (Neon-compatible). Run `prisma migrate dev`
+// inside `apps/backend` to create the database; this file is the source of
+// truth for shared types consumed by the API and SDK packages.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Org {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  members   Membership[]
+  workspaces Workspace[]
+  policies  OrgPolicy?
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  displayName String?
+  createdAt   DateTime     @default(now())
+  memberships Membership[]
+  apiKeys     ApiKey[]
+  aiRuns      AiRun[]
+  usageRows   UsageRow[]
+}
+
+model Membership {
+  id     String @id @default(cuid())
+  orgId  String
+  userId String
+  role   String @default("member")
+  org    Org    @relation(fields: [orgId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([orgId, userId])
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  createdAt DateTime @default(now())
+  org       Org      @relation(fields: [orgId], references: [id])
+  syncBlobs SyncBlob[]
+}
+
+model SyncBlob {
+  id          String   @id @default(cuid())
+  workspaceId String
+  path        String
+  sha256      String
+  bytes       Int
+  encrypted   Boolean  @default(false)
+  uploadedAt  DateTime @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([workspaceId, path])
+}
+
+model AiRun {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String?
+  prompt      String
+  provider    String
+  model       String
+  status      String
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  user        User     @relation(fields: [userId], references: [id])
+  usageRows   UsageRow[]
+}
+
+model UsageRow {
+  id         String   @id @default(cuid())
+  userId     String
+  aiRunId    String?
+  feature    String
+  tokensIn   Int
+  tokensOut  Int
+  costUsd    Decimal  @default(0)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  aiRun      AiRun?   @relation(fields: [aiRunId], references: [id])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  hashed    String   @unique
+  label     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model OrgPolicy {
+  id              String  @id @default(cuid())
+  orgId           String  @unique
+  airGap          Boolean @default(false)
+  providerAllow   String  @default("[]")
+  modelAllow      String  @default("[]")
+  pluginAllow     String  @default("[]")
+  org             Org     @relation(fields: [orgId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  orgId     String?
+  userId    String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}

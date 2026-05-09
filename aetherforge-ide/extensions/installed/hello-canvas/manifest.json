@@ -1,0 +1,17 @@
+{
+  "id": "hello-canvas",
+  "name": "Hello Canvas",
+  "version": "1.0.0",
+  "description": "Demonstrates the Canvas API by adding a 'Hello from Plugin!' button node to the visual canvas.",
+  "author": "AetherForge",
+  "main": "index.js",
+  "contributes": {
+    "commands": [
+      {
+        "id": "hello-canvas.addButton",
+        "title": "Hello Canvas: Add Hello Button to Canvas"
+      }
+    ]
+  },
+  "activationEvents": ["onStartup"]
+}

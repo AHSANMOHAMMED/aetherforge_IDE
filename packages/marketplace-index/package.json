@@ -1,0 +1,13 @@
+{
+  "name": "@aetherforge/marketplace-index",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Static curated marketplace index (V2); replace with hosted API in production.",
+  "type": "module",
+  "exports": {
+    ".": "./registry.json"
+  },
+  "files": [
+    "registry.json"
+  ]
+}
