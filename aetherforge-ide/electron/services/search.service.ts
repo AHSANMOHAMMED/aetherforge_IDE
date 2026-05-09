@@ -1,9 +1,18 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { rgPath } from '@vscode/ripgrep';
 import type { SearchHit, SearchInFilesPayload, SearchInFilesResult } from '../../src/common/ipc';
 import logger from '../logger';
+
+// `@vscode/ripgrep` is ESM-only (`"type": "module"`); the Electron main bundle is CJS, so we lazy
+// import it via `import()` which is compatible with both CJS and ESM hosts.
+let rgPathPromise: Promise<string> | null = null;
+function getRgPath(): Promise<string> {
+  if (!rgPathPromise) {
+    rgPathPromise = import('@vscode/ripgrep').then((m) => m.rgPath);
+  }
+  return rgPathPromise;
+}
 
 function buildArgs(payload: SearchInFilesPayload): string[] {
   const args = ['--json', '--no-ignore-vcs', '--smart-case', '--max-columns', '500'];
@@ -31,6 +40,7 @@ export async function searchInFiles(payload: SearchInFilesPayload): Promise<Sear
   const hits: SearchHit[] = [];
   let truncated = false;
 
+  const rgPath = await getRgPath();
   return new Promise((resolve) => {
     const proc = spawn(rgPath, buildArgs(payload), { cwd: payload.workspacePath });
     let buffer = '';

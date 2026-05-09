@@ -23,6 +23,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "changeset": "changeset",
     "release": "changeset version && npm install --package-lock-only",
+    "postinstall": "node scripts/postinstall.mjs",
     "prepare": "lefthook install || true"
   },
   "devDependencies": {

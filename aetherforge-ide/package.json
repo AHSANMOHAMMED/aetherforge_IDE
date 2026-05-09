@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dist": "npm run build && electron-builder",
-    "rebuild-native": "electron-rebuild -f -w better-sqlite3,node-pty"
+    "rebuild-native": "electron-rebuild -f -w better-sqlite3,node-pty -m ../"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
@@ -65,6 +65,7 @@
     "simple-git": "^3.27.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.4",
+    "web-worker": "^1.5.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.1"
   },
