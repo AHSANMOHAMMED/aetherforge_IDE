@@ -10,6 +10,32 @@ let started = false;
 const dirtyPaths = new Set<string>();
 let lastWorkspace: string | null = null;
 
+type SyncStatus = {
+  state: 'idle' | 'queued' | 'pushing' | 'ok' | 'error';
+  pending: number;
+  lastPushedAt: number | null;
+  message?: string;
+};
+let status: SyncStatus = { state: 'idle', pending: 0, lastPushedAt: null };
+const statusListeners = new Set<(s: SyncStatus) => void>();
+function setStatus(next: Partial<SyncStatus>): void {
+  status = { ...status, ...next };
+  for (const fn of statusListeners) {
+    try {
+      fn(status);
+    } catch {
+      // ignore listener errors
+    }
+  }
+}
+export function getSyncStatus(): SyncStatus {
+  return status;
+}
+export function onSyncStatusChanged(fn: (s: SyncStatus) => void): () => void {
+  statusListeners.add(fn);
+  return () => statusListeners.delete(fn);
+}
+
 async function sha256Text(text: string): Promise<{ sha256: string; bytes: number }> {
   const enc = new TextEncoder().encode(text);
   const buf = await crypto.subtle.digest('SHA-256', enc);
@@ -46,21 +72,41 @@ async function buildEntries(workspacePath: string, paths: string[]): Promise<Syn
 async function flushWorkspace(workspacePath: string): Promise<void> {
   if (dirtyPaths.size === 0) return;
   const session = useAccountStore.getState().session;
-  if (!session) return;
+  if (!session) {
+    setStatus({ state: 'idle', message: 'Sign in to enable sync' });
+    return;
+  }
   const airgap = (window as unknown as { __AETHERFORGE_AIRGAP__?: boolean }).__AETHERFORGE_AIRGAP__;
-  if (airgap) return;
+  if (airgap) {
+    setStatus({ state: 'idle', message: 'Air-gap mode' });
+    return;
+  }
 
   const copy = [...dirtyPaths];
   dirtyPaths.clear();
+  setStatus({ state: 'pushing', pending: copy.length, message: undefined });
   const files = await buildEntries(workspacePath, copy);
-  if (files.length === 0) return;
+  if (files.length === 0) {
+    setStatus({ state: 'idle', pending: dirtyPaths.size });
+    return;
+  }
 
   const baseUrl = getCloudApiBaseUrl();
   const workspaceId = workspacePath;
-  const manifest = await pushManifest(baseUrl, workspaceId, files);
-  if (!manifest.ok || !manifest.uploadUrls) return;
+  let manifest: Awaited<ReturnType<typeof pushManifest>>;
+  try {
+    manifest = await pushManifest(baseUrl, workspaceId, files);
+  } catch (error) {
+    setStatus({ state: 'error', message: error instanceof Error ? error.message : 'Push failed' });
+    return;
+  }
+  if (!manifest.ok || !manifest.uploadUrls) {
+    setStatus({ state: 'error', message: 'Manifest rejected' });
+    return;
+  }
 
   const api = window.electronAPI!;
+  let confirmed = 0;
   for (const slot of manifest.uploadUrls) {
     const row = slot as { url?: string; path?: string };
     const url = row.url ?? '';
@@ -74,10 +120,17 @@ async function flushWorkspace(workspacePath: string): Promise<void> {
       if (!put.ok) continue;
       const { sha256, bytes } = await sha256Text(content);
       await confirmSyncBlob(baseUrl, { workspaceId, path: rel, sha256, bytes });
+      confirmed += 1;
     } catch {
       // ignore per-file failures
     }
   }
+  setStatus({
+    state: 'ok',
+    pending: dirtyPaths.size,
+    lastPushedAt: Date.now(),
+    message: `${confirmed} file${confirmed === 1 ? '' : 's'} pushed`
+  });
 }
 
 function onWorkspaceEvent(ev: WorkspaceEvent): void {
@@ -86,9 +139,11 @@ function onWorkspaceEvent(ev: WorkspaceEvent): void {
   lastWorkspace = workspacePath;
   if (kind === 'add' || kind === 'change') {
     dirtyPaths.add(filePath);
+    setStatus({ state: 'queued', pending: dirtyPaths.size });
   }
   if (kind === 'unlink' || kind === 'unlinkDir') {
     dirtyPaths.delete(filePath);
+    setStatus({ pending: dirtyPaths.size });
   }
 }
 

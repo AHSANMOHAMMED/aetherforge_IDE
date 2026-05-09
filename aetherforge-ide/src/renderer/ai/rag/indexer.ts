@@ -7,6 +7,30 @@ const MAX_BYTES = 120_000;
 
 /** In-memory embedding index keyed by workspace root path. */
 const workspaceIndex = new Map<string, EmbeddedChunk[]>();
+const indexListeners = new Set<() => void>();
+
+function notifyIndexListeners(): void {
+  for (const fn of indexListeners) {
+    try {
+      fn();
+    } catch {
+      // listener errors should not break indexing
+    }
+  }
+}
+
+/** Subscribe to index-mutation events. Returns unsubscribe function. */
+export function onRagIndexChanged(fn: () => void): () => void {
+  indexListeners.add(fn);
+  return () => indexListeners.delete(fn);
+}
+
+/** Total chunks across all workspaces — useful for status bar. */
+export function getRagIndexSummary(): { workspaces: number; chunks: number } {
+  let chunks = 0;
+  for (const list of workspaceIndex.values()) chunks += list.length;
+  return { workspaces: workspaceIndex.size, chunks };
+}
 
 let started = false;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -40,6 +64,7 @@ async function indexFile(workspacePath: string, filePath: string): Promise<void>
     const chunks = await embedDocuments([{ id: rel, source: filePath, text: content }]);
     const prev = workspaceIndex.get(workspacePath) ?? [];
     workspaceIndex.set(workspacePath, replaceChunksForSource(prev, filePath, chunks));
+    notifyIndexListeners();
   } catch {
     // ignore read/embed failures for transient files
   }
@@ -52,6 +77,7 @@ function removeFile(workspacePath: string, filePath: string): void {
     workspacePath,
     prev.filter((c) => c.source !== filePath)
   );
+  notifyIndexListeners();
 }
 
 function flushQueue(): void {
