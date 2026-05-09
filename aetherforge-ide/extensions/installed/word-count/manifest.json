@@ -1,0 +1,17 @@
+{
+  "id": "word-count",
+  "name": "Word Count",
+  "version": "1.0.0",
+  "description": "Counts the number of words in the currently open file and shows a toast notification.",
+  "author": "AetherForge",
+  "main": "index.js",
+  "contributes": {
+    "commands": [
+      {
+        "id": "word-count.count",
+        "title": "Word Count: Count Words in File"
+      }
+    ]
+  },
+  "activationEvents": ["onStartup"]
+}

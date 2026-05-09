@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "updatedAt": "2026-05-09T00:00:00.000Z",
+  "extensions": [
+    {
+      "id": "sample.hello-world",
+      "name": "Hello World (sample)",
+      "publisher": "aetherforge",
+      "version": "0.0.1",
+      "description": "Placeholder entry for marketplace UI wiring.",
+      "dist": {
+        "url": "https://example.invalid/hello-world-0.0.1.tgz",
+        "integrity": "sha256-0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "engines": {
+        "aetherforge": ">=0.1.0"
+      }
+    }
+  ]
+}
