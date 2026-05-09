@@ -4,6 +4,7 @@
   "private": true,
   "description": "AetherForge IDE - hybrid code + visual + AI development environment",
   "author": "AetherForge Team",
+  "homepage": "https://github.com/AHSANMOHAMMED/aetherforge_IDE",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -170,6 +171,7 @@
       ]
     },
     "linux": {
+      "maintainer": "AetherForge Team <ahsanmohammed828@gmail.com>",
       "target": [
         {
           "target": "AppImage",
