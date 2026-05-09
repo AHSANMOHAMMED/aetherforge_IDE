@@ -3,6 +3,7 @@ import { Migrator } from 'kysely';
 import logger from '../logger';
 import { migrate001Down, migrate001Initial } from './migrations/001-initial';
 import { migrate002AiRunsJson, migrate002Down } from './migrations/002-ai-runs-json';
+import { migrate003Down, migrate003RagEmbeddings } from './migrations/003-rag-index';
 
 const migrations: Record<string, Migration> = {
   '001_initial': {
@@ -12,6 +13,10 @@ const migrations: Record<string, Migration> = {
   '002_ai_runs_json': {
     up: async (db) => migrate002AiRunsJson(db),
     down: async (db) => migrate002Down(db)
+  },
+  '003_rag_embeddings': {
+    up: async (db) => migrate003RagEmbeddings(db),
+    down: async (db) => migrate003Down(db)
   }
 };
 

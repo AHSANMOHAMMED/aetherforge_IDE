@@ -44,6 +44,8 @@ import {
   type PluginUninstallPayload,
   type PluginVerifyPayload,
   type PluginVerifyResult,
+  type ExtHostRunBundlePayload,
+  type ExtHostStopPayload,
   type PreviewAttachViewPayload,
   type PreviewSetBoundsPayload,
   type PreviewStartPayload,
@@ -170,6 +172,10 @@ const electronAPI = {
     ipcRenderer.invoke(IPCChannels.PluginUninstall, payload),
   pluginVerify: (payload: PluginVerifyPayload): Promise<PluginVerifyResult> =>
     ipcRenderer.invoke(IPCChannels.PluginVerify, payload),
+  extHostRunBundle: (payload: ExtHostRunBundlePayload): Promise<OperationResult> =>
+    ipcRenderer.invoke(IPCChannels.ExtHostRunBundle, payload),
+  extHostStop: (payload: ExtHostStopPayload): Promise<OperationResult> =>
+    ipcRenderer.invoke(IPCChannels.ExtHostStop, payload),
 
   // Git
   getGitStatus: (workspacePath: string): Promise<GitStatusResult> =>

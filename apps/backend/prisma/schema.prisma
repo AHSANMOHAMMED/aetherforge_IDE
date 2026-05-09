@@ -22,14 +22,32 @@ model Org {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  email       String       @unique
-  displayName String?
-  createdAt   DateTime     @default(now())
-  memberships Membership[]
-  apiKeys     ApiKey[]
-  aiRuns      AiRun[]
-  usageRows   UsageRow[]
+  id               String         @id @default(cuid())
+  email            String         @unique
+  displayName      String?
+  stripeCustomerId String?
+  createdAt        DateTime       @default(now())
+  memberships      Membership[]
+  apiKeys          ApiKey[]
+  aiRuns           AiRun[]
+  usageRows        UsageRow[]
+  subscriptions    Subscription[]
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String
+  orgId                String?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?   @unique
+  plan                 String
+  status               String
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  user                 User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Membership {

@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { runOrchestration } from './orchestration';
 import { clearRuns as clearRunsSql, loadRuns as loadRunsSql, saveRun as saveRunSql } from './persistence';
 import { PROVIDER_DEFAULT_MODEL } from './providers';
+import { useAppStore } from '@/renderer/state/app-store';
+import { getRagAugmentationBlock } from './rag/indexer';
 import { formatMentionContext, parseMentions, stripMentions } from './rag/mention-parser';
 import type {
   AgentRun,
@@ -366,12 +368,23 @@ export const useAIStore = create<AIState>((set, get) => ({
       }
     }
 
+    let ragBlock: string | null = null;
+    if (mentions.length === 0) {
+      const wsPath = useAppStore.getState().workspacePath;
+      ragBlock = await getRagAugmentationBlock(wsPath, trimmed);
+    }
+
     const promptWithContext = (() => {
-      if (resolvedMentions.length === 0) {
-        return trimmed;
+      if (resolvedMentions.length > 0) {
+        const stripped = stripMentions(trimmed) || trimmed;
+        return [formatMentionContext(resolvedMentions), 'User request:', stripped]
+          .filter(Boolean)
+          .join('\n\n');
       }
-      const stripped = stripMentions(trimmed) || trimmed;
-      return [formatMentionContext(resolvedMentions), 'User request:', stripped].filter(Boolean).join('\n\n');
+      if (ragBlock) {
+        return [ragBlock, 'User request:', trimmed].join('\n\n');
+      }
+      return trimmed;
     })();
 
     try {

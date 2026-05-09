@@ -45,4 +45,7 @@ export function logActivity(
     message,
     detail: options?.detail
   });
+  void import('@/renderer/telemetry/telemetry-client').then((m) =>
+    m.maybeForwardActivityToTelemetry(kind, message, options)
+  );
 }

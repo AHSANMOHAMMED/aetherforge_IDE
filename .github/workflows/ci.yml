@@ -68,6 +68,28 @@ jobs:
       - run: npm run typecheck --workspace=@aetherforge/backend
       - run: npm run typecheck --workspace=@aetherforge/sdk
 
+  sdk-openapi:
+    name: SDK OpenAPI codegen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run ci:prepare --workspace=@aetherforge/backend
+      - run: npm install --workspace=@aetherforge/sdk
+      - name: Start backend and codegen
+        run: |
+          cd apps/backend
+          PORT=9876 npx tsx src/index.ts &
+          PID=$!
+          cd ../..
+          sleep 4
+          OPENAPI_URL=http://127.0.0.1:9876/v1/openapi.json npm run openapi:codegen --workspace=@aetherforge/sdk
+          kill $PID || true
+
   e2e:
     name: E2E (${{ matrix.os }})
     needs: [lint, typecheck]

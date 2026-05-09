@@ -1,3 +1,5 @@
+export type { paths, components } from './generated/api.js';
+
 export type HealthResponse = { ok: boolean; service: string; version: string };
 export type DeviceFlowStart = {
   deviceCode: string;

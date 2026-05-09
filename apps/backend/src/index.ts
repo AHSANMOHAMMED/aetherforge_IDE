@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { registerAuth } from './auth.js';
 import { closePrisma } from './db.js';
+import { initBackendSentry, registerSentryErrorHook } from './observability/sentry.js';
 import { registerAiProxyRoutes } from './routes/ai-proxy.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerBillingRoutes } from './routes/billing.js';
@@ -13,7 +14,11 @@ const port = Number(process.env.PORT ?? 8787);
 const VERSION = '0.0.1';
 const SERVICE = 'aetherforge-backend';
 
+await initBackendSentry();
+
 const app = Fastify({ logger: true });
+
+await registerSentryErrorHook(app);
 
 await app.register(cors, { origin: true });
 await registerAuth(app);
@@ -55,8 +60,8 @@ app.get('/v1/openapi.json', async () => ({
     '/v1/sync/manifest': {
       post: { operationId: 'syncManifest', responses: { '200': { description: 'Manifest accepted' } } }
     },
-    '/v1/sync/conflicts': {
-      post: { operationId: 'syncConflicts', responses: { '200': { description: 'Conflict list' } } }
+    '/v1/sync/blob-confirm': {
+      post: { operationId: 'syncBlobConfirm', responses: { '200': { description: 'Blob recorded' } } }
     },
     '/v1/org/{orgId}/policy': {
       get: { operationId: 'orgPolicy', responses: { '200': { description: 'Policy' } } },

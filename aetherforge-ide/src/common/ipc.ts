@@ -54,6 +54,8 @@ export enum IPCChannels {
   PluginInstallFromUrl = 'plugin:install-from-url',
   PluginUninstall = 'plugin:uninstall',
   PluginVerify = 'plugin:verify',
+  ExtHostRunBundle = 'exthost:run-bundle',
+  ExtHostStop = 'exthost:stop',
 
   // Git
   GitGetStatus = 'git:get-status',
@@ -419,6 +421,8 @@ export type PluginInstallResult = { ok: boolean; id?: string; error?: string };
 export type PluginUninstallPayload = { id: string };
 export type PluginVerifyPayload = { id: string };
 export type PluginVerifyResult = { ok: boolean; verified: boolean; publisher?: string; error?: string };
+export type ExtHostRunBundlePayload = { pluginId: string; bundlePath: string };
+export type ExtHostStopPayload = { pluginId: string };
 
 // ─── FS payloads ─────────────────────────────────────────────────────────────
 export type WriteFilePayload = { path: string; content: string };
@@ -533,6 +537,8 @@ export type ElectronAPI = {
   pluginInstallFromUrl: (payload: PluginInstallFromUrlPayload) => Promise<PluginInstallResult>;
   pluginUninstall: (payload: PluginUninstallPayload) => Promise<OperationResult>;
   pluginVerify: (payload: PluginVerifyPayload) => Promise<PluginVerifyResult>;
+  extHostRunBundle: (payload: ExtHostRunBundlePayload) => Promise<OperationResult>;
+  extHostStop: (payload: ExtHostStopPayload) => Promise<OperationResult>;
 
   // Git
   getGitStatus: (workspacePath: string) => Promise<GitStatusResult>;

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { requireAuthPreHandler } from '../auth.js';
 import { recordAudit } from '../audit.js';
 
 /**
@@ -6,7 +7,7 @@ import { recordAudit } from '../audit.js';
  * when an org policy disallows direct PostHog/Sentry connections (air-gap or compliance).
  */
 export async function registerTelemetryRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/v1/telemetry/event', async (req) => {
+  app.post('/v1/telemetry/event', { preHandler: requireAuthPreHandler }, async (req) => {
     const body = (req.body ?? {}) as { event?: string; properties?: Record<string, unknown> };
     if (!body.event) {
       return { ok: false, error: 'event required' };
