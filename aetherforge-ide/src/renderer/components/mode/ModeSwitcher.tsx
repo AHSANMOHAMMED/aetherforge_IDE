@@ -10,6 +10,8 @@ export function ModeSwitcher(): ReactElement {
     <div className="inline-flex items-center gap-1 rounded-xl border border-cyan-400/20 bg-[linear-gradient(120deg,rgba(8,15,30,0.85),rgba(15,20,40,0.85))] p-1 shadow-[0_0_0_1px_rgba(103,232,249,0.08),0_16px_40px_rgba(0,0,0,0.35)]">
       <button
         type="button"
+        title="Code editor"
+        aria-label="Switch to code mode"
         onClick={() => setMode('code')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'code'
@@ -22,6 +24,8 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        title="Visual canvas"
+        aria-label="Switch to visual canvas mode"
         onClick={() => setMode('visual')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'visual' ? 'bg-blue-500/25 text-blue-100' : 'text-foreground/70 hover:text-foreground'
@@ -32,6 +36,8 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        title="Split code and canvas"
+        aria-label="Switch to split mode"
         onClick={() => setMode('split')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'split' ? 'bg-indigo-500/25 text-indigo-100' : 'text-foreground/70 hover:text-foreground'
@@ -48,7 +54,8 @@ export function ModeSwitcher(): ReactElement {
             ? 'bg-emerald-500/25 text-emerald-100'
             : 'text-foreground/70 hover:text-foreground'
         }`}
-        title="Backend mode"
+        title="Backend API canvas"
+        aria-label="Switch to backend API mode"
       >
         <Blocks className="h-4 w-4" />
         Backend
@@ -69,6 +76,8 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        title="Runtime preview"
+        aria-label="Switch to runtime preview mode"
         onClick={() => setMode('preview')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'preview' ? 'bg-amber-500/25 text-amber-100' : 'text-foreground/70 hover:text-foreground'
@@ -79,6 +88,8 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        title="Export project"
+        aria-label="Switch to export mode"
         onClick={() => setMode('export')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'export' ? 'bg-violet-500/25 text-violet-100' : 'text-foreground/70 hover:text-foreground'
@@ -90,6 +101,7 @@ export function ModeSwitcher(): ReactElement {
       <button
         type="button"
         aria-label="Project settings"
+        title="Settings"
         onClick={() => setMode('settings')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'settings' ? 'bg-slate-400/25 text-slate-100' : 'text-foreground/70 hover:text-foreground'
@@ -100,6 +112,8 @@ export function ModeSwitcher(): ReactElement {
       </button>
       <button
         type="button"
+        title="Plugin marketplace"
+        aria-label="Switch to plugin marketplace"
         onClick={() => setMode('marketplace')}
         className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition ${
           mode === 'marketplace' ? 'bg-rose-500/25 text-rose-100' : 'text-foreground/70 hover:text-foreground'

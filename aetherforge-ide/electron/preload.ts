@@ -33,6 +33,9 @@ import {
   type LspStartPayload,
   type LspStartResult,
   type MovePathPayload,
+  type OAuthLoopbackResultPayload,
+  type OAuthStartLoopbackPayload,
+  type OAuthStartLoopbackResult,
   type OpenWorkspaceDialogResult,
   type OperationResult,
   type PingResponse,
@@ -246,7 +249,16 @@ const electronAPI = {
 
   // Telemetry
   telemetryEvent: (payload: TelemetryEventPayload): Promise<OperationResult> =>
-    ipcRenderer.invoke(IPCChannels.TelemetryEvent, payload)
+    ipcRenderer.invoke(IPCChannels.TelemetryEvent, payload),
+
+  // OAuth / shell
+  oauthStartLoopback: (payload: OAuthStartLoopbackPayload): Promise<OAuthStartLoopbackResult> =>
+    ipcRenderer.invoke(IPCChannels.OAuthStartLoopback, payload),
+  oauthStopLoopback: (): Promise<OperationResult> => ipcRenderer.invoke(IPCChannels.OAuthStopLoopback),
+  onOAuthLoopbackResult: (cb: (payload: OAuthLoopbackResultPayload) => void) =>
+    on(IPCChannels.OAuthLoopbackResult, cb),
+  openExternalUrl: (url: string): Promise<OperationResult> =>
+    ipcRenderer.invoke(IPCChannels.OpenExternalUrl, url)
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

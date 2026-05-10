@@ -25,10 +25,14 @@ type ToolCallingInput = {
 
 const OPENAI_COMPATIBLE_PROVIDERS: ReadonlySet<string> = new Set([
   'openai',
+  'chatgpt',
+  'codex',
   'grok',
   'groq',
   'mistral',
-  'openrouter'
+  'openrouter',
+  'kimi',
+  'copilot'
 ]);
 
 function safeParse(json: string): Record<string, unknown> | null {
@@ -48,6 +52,8 @@ function endpointForOpenAICompatible(provider: string, baseUrl?: string): string
   }
   switch (provider) {
     case 'openai':
+    case 'chatgpt':
+    case 'codex':
       return 'https://api.openai.com/v1/chat/completions';
     case 'grok':
       return 'https://api.x.ai/v1/chat/completions';
@@ -57,6 +63,10 @@ function endpointForOpenAICompatible(provider: string, baseUrl?: string): string
       return 'https://api.mistral.ai/v1/chat/completions';
     case 'openrouter':
       return 'https://openrouter.ai/api/v1/chat/completions';
+    case 'kimi':
+      return 'https://api.moonshot.cn/v1/chat/completions';
+    case 'copilot':
+      return 'https://api.githubcopilot.com/chat/completions';
     default:
       return 'https://api.openai.com/v1/chat/completions';
   }
@@ -67,6 +77,13 @@ function extraHeadersFor(provider: string): Record<string, string> {
     return {
       'HTTP-Referer': 'https://github.com/aetherforge/aetherforge-ide',
       'X-Title': 'AetherForge IDE'
+    };
+  }
+  if (provider === 'copilot') {
+    return {
+      'Editor-Version': 'AetherForge/1.0.0',
+      'Copilot-Integration-Id': 'vscode-chat',
+      'User-Agent': 'AetherForge-IDE/1.0'
     };
   }
   return {};

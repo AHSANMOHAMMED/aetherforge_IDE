@@ -4,6 +4,7 @@ import { ActivityFeed } from './components/feedback/ActivityFeed';
 import { restoreSession, startSessionAutoSave } from './services/session-persistence';
 import { logActivity } from './state/activity-store';
 import { ShellLayout } from './components/layout/ShellLayout';
+import { AppMenuBar } from './components/layout/AppMenuBar';
 import { ModeSwitcher } from './components/mode/ModeSwitcher';
 import { AetherForgeLogo } from './components/brand/AetherForgeLogo';
 import { SidebarLayout } from './components/sidebar/SidebarLayout';
@@ -30,7 +31,7 @@ import { hasBridgeCapability } from './runtime/bridge';
 import { useDebugStore } from './debug/dap-store';
 
 const ExportPanel = lazy(() => import('./export/ExportPanel'));
-const WebPreviewPanel = lazy(() => import('./preview/WebPreviewPanel'));
+const WebPreviewPanel = lazy(() => import('./preview/RuntimePreviewPanel'));
 const SettingsPanel = lazy(() => import('./settings/SettingsPanel'));
 const MarketplacePanel = lazy(() => import('./plugins/marketplace/MarketplacePanel'));
 
@@ -89,6 +90,24 @@ export default function App(): ReactElement {
       // Ignore persistence errors and keep UX functional.
     }
   }, [splitFocus]);
+
+  // When the user enters visual/split mode, the canvas no longer carries an
+  // inner palette. Auto-focus the sidebar Components tab so the palette is
+  // always visible. Users can then switch sidebar tabs freely.
+  const componentsAutoFocusedRef = useRef(false);
+  useEffect(() => {
+    if (mode !== 'visual' && mode !== 'split') {
+      componentsAutoFocusedRef.current = false;
+      return;
+    }
+    if (componentsAutoFocusedRef.current) {
+      return;
+    }
+    componentsAutoFocusedRef.current = true;
+    if (sidebarActiveTab !== 'components') {
+      setSidebarTab('components');
+    }
+  }, [mode, sidebarActiveTab, setSidebarTab]);
 
   useEffect(() => {
     try {
@@ -423,6 +442,7 @@ export default function App(): ReactElement {
           </div>
         }
         headerCenter={<ModeSwitcher />}
+        menuBar={<AppMenuBar />}
         headerRight={
           <div className="flex items-center gap-1">
             <button
@@ -462,8 +482,30 @@ export default function App(): ReactElement {
           terminalVisible ? (
             <TerminalPanel />
           ) : (
-            <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-              Terminal hidden
+            <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <TerminalSquare className="h-9 w-9 shrink-0 opacity-40" aria-hidden />
+              <div>
+                <p className="text-foreground text-sm font-medium">Terminal is hidden</p>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed">
+                  Open the integrated terminal to run installs, scripts, and git. Use the header{' '}
+                  <span className="text-foreground/80">Terminal</span> control or press{' '}
+                  <kbd className="rounded border border-white/15 bg-white/5 px-1 py-0.5 font-mono text-[10px]">
+                    ⌘J
+                  </kbd>{' '}
+                  /{' '}
+                  <kbd className="rounded border border-white/15 bg-white/5 px-1 py-0.5 font-mono text-[10px]">
+                    Ctrl+J
+                  </kbd>
+                  .
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-foreground rounded-md border border-cyan-500/30 bg-cyan-500/15 px-4 py-2 text-xs font-medium text-cyan-100 hover:bg-cyan-500/25"
+                onClick={() => toggleTerminal()}
+              >
+                Show terminal
+              </button>
             </div>
           )
         }

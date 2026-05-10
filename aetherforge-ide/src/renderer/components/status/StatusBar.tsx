@@ -29,7 +29,11 @@ export function StatusBar(): ReactElement {
   );
 
   return (
-    <div className="text-foreground/80 flex h-8 items-center justify-between border-t border-white/10 bg-black/30 px-3 text-xs">
+    <div
+      className="text-foreground/80 flex h-8 items-center justify-between border-t border-white/10 bg-black/30 px-3 text-xs"
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex min-w-0 items-center gap-4 overflow-hidden">
         <span className="shrink-0">Branch: {branch}</span>
         <span className="truncate">

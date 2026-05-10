@@ -6,6 +6,7 @@ export type SidebarTab =
   | 'pages'
   | 'styles'
   | 'ai'
+  | 'ai-cost'
   | 'extensions'
   | 'problems'
   | 'debug';
@@ -25,6 +26,7 @@ export const SIDEBAR_TABS: SidebarTabDefinition[] = [
   { id: 'pages', label: 'Pages', icon: '📄' },
   { id: 'styles', label: 'Styles', icon: '🎨' },
   { id: 'ai', label: 'AI', icon: '🤖' },
+  { id: 'ai-cost', label: 'AI Cost', icon: '💹' },
   { id: 'extensions', label: 'Extensions', icon: '🔌' },
   { id: 'problems', label: 'Problems', icon: '⚠️' },
   { id: 'debug', label: 'Run & Debug', icon: '🐞' }

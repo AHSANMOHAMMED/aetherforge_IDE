@@ -8,6 +8,8 @@ export type EditorTheme = 'aetherforge-dark' | 'aetherforge-light' | 'vs-dark' |
 export type AISettingsState = {
   airGap: boolean;
   costGuardUsd: number; // hard stop above this per-run
+  /** Route chat through AetherForge cloud proxy when signed in. */
+  routeViaCloud: boolean;
 };
 
 export type PluginExecutionHost = 'worker' | 'utility';
@@ -84,7 +86,8 @@ const DEFAULTS: Omit<
   editorTheme: 'aetherforge-dark',
   ai: {
     airGap: false,
-    costGuardUsd: 1.0
+    costGuardUsd: 1.0,
+    routeViaCloud: false
   },
   telemetryEnabled: false,
   showMinimap: true,
@@ -118,7 +121,7 @@ export const useSettingsStore = create<SettingsState>()(
     {
       name: 'aetherforge-settings',
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = (persisted ?? {}) as Partial<SettingsState>;
         if (fromVersion < 2) {
@@ -133,6 +136,13 @@ export const useSettingsStore = create<SettingsState>()(
         }
         if (fromVersion < 3) {
           state.pluginExecutionHost = state.pluginExecutionHost ?? 'worker';
+        }
+        if (fromVersion < 4) {
+          state.ai = {
+            ...DEFAULTS.ai,
+            ...(state.ai ?? {}),
+            routeViaCloud: (state.ai as AISettingsState | undefined)?.routeViaCloud ?? false
+          };
         }
         return { ...DEFAULTS, ...state };
       }

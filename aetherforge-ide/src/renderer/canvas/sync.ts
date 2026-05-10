@@ -13,6 +13,7 @@ function toSerializable(nodes: CanvasNode[]): CanvasSerializableNode[] {
     label: node.data.label,
     x: Math.round(node.position.x),
     y: Math.round(node.position.y),
+    parentId: node.parentId,
     props: node.data.props
   }));
 }
@@ -25,7 +26,10 @@ export function generateCanvasCode(nodes: CanvasNode[], pages: AppPage[] = []): 
 
 type CanvasComponent = {
   id: string;
-  componentType: 'button' | 'container' | 'text' | 'image' | 'card' | 'input' | 'select' | 'checkbox' | 'switch' | 'badge' | 'alert' | 'modal' | 'navbar';
+  componentType:
+    | 'button' | 'frame' | 'row' | 'column' | 'stack' | 'grid' | 'container' | 'text' | 'image' | 'card'
+    | 'input' | 'select' | 'checkbox' | 'switch' | 'badge' | 'alert' | 'modal' | 'navbar'
+    | 'fab' | 'appbar' | 'bottomnav' | 'chip' | 'radio' | 'slider' | 'progress' | 'imageview' | 'videoview' | 'list';
   label: string;
   x: number;
   y: number;
@@ -46,6 +50,12 @@ type CanvasComponent = {
     targetPageId?: string;
     onClickPrompt?: string;
     onClickHandlerCode?: string;
+    ariaLabel?: string;
+    min?: number;
+    max?: number;
+    value?: number;
+    items?: string[];
+    iconName?: string;
   };
 };
 
@@ -136,6 +146,19 @@ export default function VisualBuilderGenerated(): JSX.Element {
             </div>
           );
         }
+        if (
+          item.componentType === 'frame' ||
+          item.componentType === 'row' ||
+          item.componentType === 'column' ||
+          item.componentType === 'stack' ||
+          item.componentType === 'grid'
+        ) {
+          return (
+            <div key={item.id} style={itemStyle(item)} className={cls || 'rounded-lg border border-dashed border-white/20 bg-slate-900/40 p-2'}>
+              <span className="text-[10px] uppercase tracking-wide text-slate-500">{item.componentType}</span>
+            </div>
+          );
+        }
         if (item.componentType === 'text') {
           return (
             <p key={item.id} style={itemStyle(item)} className={cls || 'text-base font-medium text-slate-100'}>
@@ -210,7 +233,7 @@ export default function VisualBuilderGenerated(): JSX.Element {
             </div>
           );
         }
-        if (item.componentType === 'navbar') {
+        if (item.componentType === 'navbar' || item.componentType === 'appbar') {
           return (
             <nav key={item.id} style={itemStyle(item)} className={cls || 'flex items-center justify-between rounded-lg border border-white/10 bg-slate-900/90 px-4 py-3'}>
               <span className="font-semibold text-slate-100">{item.props.text ?? item.label}</span>
@@ -218,6 +241,70 @@ export default function VisualBuilderGenerated(): JSX.Element {
                 <a href="#">Home</a><a href="#">About</a><a href="#">Contact</a>
               </div>
             </nav>
+          );
+        }
+        if (item.componentType === 'bottomnav') {
+          const items = item.props.items ?? ['Home', 'Search', 'Profile'];
+          return (
+            <nav key={item.id} style={itemStyle(item)} className={cls || 'grid grid-cols-3 items-center rounded-lg border-t border-white/10 bg-slate-900/90 py-2'}>
+              {items.map((label, i) => (
+                <span key={label + i} className={i === 0 ? 'text-center text-xs text-cyan-300' : 'text-center text-xs text-slate-400'}>
+                  {label}
+                </span>
+              ))}
+            </nav>
+          );
+        }
+        if (item.componentType === 'fab') {
+          return (
+            <button key={item.id} style={itemStyle(item)} className={cls || 'grid h-14 w-14 place-items-center rounded-full bg-cyan-500 text-white shadow-lg'}>
+              +
+            </button>
+          );
+        }
+        if (item.componentType === 'chip') {
+          return (
+            <span key={item.id} style={itemStyle(item)} className={cls || 'inline-flex items-center rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-100'}>
+              {item.props.text ?? item.label}
+            </span>
+          );
+        }
+        if (item.componentType === 'radio') {
+          return (
+            <label key={item.id} style={itemStyle(item)} className={cls || 'flex cursor-pointer items-center gap-2 text-sm text-slate-100'}>
+              <input type="radio" defaultChecked={item.props.checked} readOnly />
+              {item.props.text ?? item.label}
+            </label>
+          );
+        }
+        if (item.componentType === 'slider') {
+          return (
+            <input key={item.id} type="range" style={itemStyle(item)} className={cls || 'w-full accent-cyan-500'} min={item.props.min ?? 0} max={item.props.max ?? 100} defaultValue={item.props.value ?? 0} readOnly />
+          );
+        }
+        if (item.componentType === 'progress') {
+          return (
+            <progress key={item.id} style={itemStyle(item)} className={cls || 'w-full'} max={item.props.max ?? 100} value={item.props.value ?? 0} />
+          );
+        }
+        if (item.componentType === 'imageview') {
+          return (
+            <img key={item.id} style={itemStyle(item)} className={cls || 'rounded object-cover'} src={item.props.src ?? 'https://picsum.photos/420/240'} alt={item.label} />
+          );
+        }
+        if (item.componentType === 'videoview') {
+          return (
+            <video key={item.id} style={itemStyle(item)} className={cls || 'rounded bg-black'} controls />
+          );
+        }
+        if (item.componentType === 'list') {
+          const items = item.props.items ?? ['List item 1', 'List item 2', 'List item 3'];
+          return (
+            <ul key={item.id} style={itemStyle(item)} className={cls || 'divide-y divide-white/10 rounded border border-white/10 bg-slate-900/70 text-sm text-slate-100'}>
+              {items.map((label, i) => (
+                <li key={label + i} className="px-3 py-2">{label}</li>
+              ))}
+            </ul>
           );
         }
         return <div key={item.id} style={itemStyle(item)} className="rounded border border-dashed border-slate-500/40 p-2 text-xs text-slate-400">{item.label}</div>;

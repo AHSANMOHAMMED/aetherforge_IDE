@@ -1,5 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { AIProviderId, ProviderSettings } from './types';
+import { getProvider, PROVIDERS } from './registry';
+import { useSettingsStore } from '@/renderer/state/settings-store';
+import { useAccountStore } from '@/renderer/auth/account-store';
+import { cloudFetch, getCloudApiBaseUrl } from '@/renderer/cloud/cloud-fetch';
 
 type LLMRequest = {
   settings: ProviderSettings;
@@ -13,16 +17,9 @@ const DEFAULT_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json'
 };
 
-export const PROVIDER_DEFAULT_MODEL: Record<AIProviderId, string> = {
-  openai: 'gpt-4.1-mini',
-  claude: 'claude-3-5-sonnet-latest',
-  grok: 'grok-2-latest',
-  ollama: 'llama3.1:8b',
-  gemini: 'gemini-2.0-flash',
-  mistral: 'mistral-small-latest',
-  openrouter: 'openai/gpt-4o-mini',
-  groq: 'llama-3.3-70b-versatile'
-};
+export const PROVIDER_DEFAULT_MODEL = Object.fromEntries(
+  PROVIDERS.map((p) => [p.id, p.defaultModel])
+) as Record<AIProviderId, string>;
 
 async function parseResponseText(response: Response): Promise<string> {
   const data = (await response.json()) as Record<string, unknown>;
@@ -148,6 +145,17 @@ async function requestOpenAICompatible(
   }
 
   return parseResponseText(response);
+}
+
+async function requestCopilot(request: LLMRequest): Promise<string> {
+  const meta = getProvider('copilot');
+  const endpoint =
+    request.settings.baseUrl ?? meta?.endpoint ?? 'https://api.githubcopilot.com/chat/completions';
+  return requestOpenAICompatible(request, endpoint, {
+    'Editor-Version': 'AetherForge/1.0.0',
+    'Copilot-Integration-Id': 'vscode-chat',
+    'User-Agent': 'AetherForge-IDE/1.0'
+  });
 }
 
 async function requestAnthropic(request: LLMRequest): Promise<string> {
@@ -409,56 +417,119 @@ async function withCloudRetries<T>(signal: AbortSignal, fn: () => Promise<T>): P
 }
 
 async function dispatchLLM(request: LLMRequest): Promise<string> {
-  const { provider } = request.settings;
-
-  if (provider === 'openai') {
-    return requestOpenAICompatible(
-      request,
-      request.settings.baseUrl ?? 'https://api.openai.com/v1/chat/completions'
-    );
+  const meta = getProvider(request.settings.provider);
+  if (!meta) {
+    throw new Error(`Unknown AI provider: ${request.settings.provider}`);
   }
 
-  if (provider === 'grok') {
-    return requestOpenAICompatible(
-      request,
-      request.settings.baseUrl ?? 'https://api.x.ai/v1/chat/completions'
-    );
-  }
+  const endpoint = request.settings.baseUrl ?? meta.endpoint;
 
-  if (provider === 'groq') {
-    return requestOpenAICompatible(
-      request,
-      request.settings.baseUrl ?? 'https://api.groq.com/openai/v1/chat/completions'
-    );
+  switch (meta.family) {
+    case 'copilot':
+      return requestCopilot(request);
+    case 'anthropic':
+      return requestAnthropic(request);
+    case 'gemini':
+      return requestGemini(request);
+    case 'ollama':
+      return requestOllama(request);
+    case 'openai-compatible': {
+      const url = endpoint ?? 'https://api.openai.com/v1/chat/completions';
+      const extra =
+        meta.id === 'openrouter'
+          ? {
+              'HTTP-Referer': 'https://github.com/aetherforge/aetherforge-ide',
+              'X-Title': 'AetherForge IDE'
+            }
+          : undefined;
+      return requestOpenAICompatible(request, url, extra);
+    }
+    default:
+      throw new Error(`Unsupported provider family for ${meta.id}`);
   }
+}
 
-  if (provider === 'mistral') {
-    return requestOpenAICompatible(
-      request,
-      request.settings.baseUrl ?? 'https://api.mistral.ai/v1/chat/completions'
-    );
-  }
-
-  if (provider === 'openrouter') {
-    return requestOpenAICompatible(
-      request,
-      request.settings.baseUrl ?? 'https://openrouter.ai/api/v1/chat/completions',
-      {
-        'HTTP-Referer': 'https://github.com/aetherforge/aetherforge-ide',
-        'X-Title': 'AetherForge IDE'
+async function parseCloudJsonAssistant(text: string): Promise<string> {
+  try {
+    const data = JSON.parse(text) as Record<string, unknown>;
+    if (Array.isArray(data.choices) && data.choices.length > 0) {
+      const firstChoice = data.choices[0] as { message?: { content?: string } };
+      if (typeof firstChoice.message?.content === 'string') {
+        return firstChoice.message.content;
       }
-    );
+    }
+    return text;
+  } catch {
+    return text;
+  }
+}
+
+async function requestLLMViaCloud(request: LLMRequest): Promise<string> {
+  const url = new URL('/v1/ai/proxy/chat', getCloudApiBaseUrl());
+  const meta = getProvider(request.settings.provider);
+  const stream =
+    Boolean(request.onToken) &&
+    meta != null &&
+    (meta.family === 'openai-compatible' || meta.family === 'copilot');
+
+  const res = await cloudFetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(stream ? { Accept: 'text/event-stream' } : {})
+    },
+    body: JSON.stringify({
+      provider: request.settings.provider,
+      model: request.settings.model,
+      messages: [
+        { role: 'system', content: request.systemPrompt },
+        { role: 'user', content: request.userPrompt }
+      ],
+      stream
+    }),
+    signal: request.signal
+  });
+
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(`Cloud proxy failed (${res.status}): ${detail.slice(0, 300)}`);
   }
 
-  if (provider === 'claude') {
-    return requestAnthropic(request);
+  if (stream && res.body) {
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffered = '';
+    let fullText = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffered += decoder.decode(value, { stream: true });
+      const lines = buffered.split('\n');
+      buffered = lines.pop() ?? '';
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+        if (payload === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }> };
+          const chunk = parsed.choices?.[0]?.delta?.content;
+          if (typeof chunk === 'string' && chunk.length > 0) {
+            fullText += chunk;
+            request.onToken?.(chunk);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return fullText;
   }
 
-  if (provider === 'gemini') {
-    return requestGemini(request);
-  }
-
-  return requestOllama(request);
+  const text = await res.text();
+  const out = await parseCloudJsonAssistant(text);
+  request.onToken?.(out);
+  return out;
 }
 
 function fallbackResponse(prompt: string): string {
@@ -475,6 +546,12 @@ function fallbackResponse(prompt: string): string {
 
 export async function requestLLM(request: LLMRequest): Promise<string> {
   const { provider, apiKey } = request.settings;
+  const routeViaCloud = useSettingsStore.getState().ai.routeViaCloud;
+  const session = useAccountStore.getState().session;
+  if (routeViaCloud && session && provider !== 'ollama') {
+    const execCloud = () => requestLLMViaCloud(request);
+    return withCloudRetries(request.signal, execCloud);
+  }
 
   if (provider !== 'ollama' && apiKey.trim().length === 0) {
     const fallback = fallbackResponse(request.userPrompt);

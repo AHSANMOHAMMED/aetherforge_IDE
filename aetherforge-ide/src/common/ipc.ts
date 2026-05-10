@@ -110,6 +110,12 @@ export enum IPCChannels {
   AiProxyChat = 'ai-proxy:chat',
   AiProxyStream = 'ai-proxy:stream',
 
+  // OAuth / shell
+  OAuthStartLoopback = 'oauth:start-loopback',
+  OAuthStopLoopback = 'oauth:stop-loopback',
+  OAuthLoopbackResult = 'oauth:loopback-result',
+  OpenExternalUrl = 'shell:open-external',
+
   // Marketplace
   MarketplaceCatalog = 'marketplace:catalog'
 }
@@ -482,6 +488,12 @@ export type TelemetryEventPayload = {
   properties?: Record<string, string | number | boolean | null>;
 };
 
+export type OAuthStartLoopbackPayload = { expectedState: string };
+export type OAuthStartLoopbackResult =
+  | { ok: true; port: number; redirectUri: string }
+  | { ok: false; error: string };
+export type OAuthLoopbackResultPayload = { code: string; state: string };
+
 // ─── ElectronAPI ─────────────────────────────────────────────────────────────
 export type ElectronAPI = {
   // Core
@@ -585,4 +597,10 @@ export type ElectronAPI = {
 
   // Telemetry
   telemetryEvent: (payload: TelemetryEventPayload) => Promise<OperationResult>;
+
+  // OAuth / shell
+  oauthStartLoopback: (payload: OAuthStartLoopbackPayload) => Promise<OAuthStartLoopbackResult>;
+  oauthStopLoopback: () => Promise<OperationResult>;
+  onOAuthLoopbackResult: (cb: (payload: OAuthLoopbackResultPayload) => void) => () => void;
+  openExternalUrl: (url: string) => Promise<OperationResult>;
 };

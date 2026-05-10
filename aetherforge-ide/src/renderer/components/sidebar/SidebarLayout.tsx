@@ -9,7 +9,8 @@ import {
   Layout,
   Palette,
   Plug,
-  Puzzle
+  Puzzle,
+  Receipt
 } from 'lucide-react';
 import { SIDEBAR_TABS, type SidebarTab } from './types';
 import { ExplorerTab } from './tabs/ExplorerTab';
@@ -17,6 +18,7 @@ import { ComponentsTab } from './tabs/ComponentsTab';
 import { PagesTab } from './tabs/PagesTab';
 import { StylesTab } from './tabs/StylesTab';
 import { AITab } from './tabs/AITab';
+import { AICostTab } from './tabs/AICostTab';
 import { ExtensionsTab } from './tabs/ExtensionsTab';
 
 const SearchTab = lazy(() => import('./tabs/SearchTab').then((m) => ({ default: m.SearchTab })));
@@ -32,6 +34,7 @@ const ICONS: Record<SidebarTab, ReactElement> = {
   pages: <Layout size={16} />,
   styles: <Palette size={16} />,
   ai: <Bot size={16} />,
+  'ai-cost': <Receipt size={16} />,
   extensions: <Plug size={16} />,
   problems: <AlertCircle size={16} />,
   debug: <Bug size={16} />
@@ -71,6 +74,8 @@ export function SidebarLayout(props: SidebarLayoutProps): ReactElement {
         return <StylesTab />;
       case 'ai':
         return <AITab />;
+      case 'ai-cost':
+        return <AICostTab />;
       case 'extensions':
         return <ExtensionsTab />;
       case 'problems':

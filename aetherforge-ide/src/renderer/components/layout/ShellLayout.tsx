@@ -5,6 +5,8 @@ type ShellLayoutProps = {
   headerLeft: ReactNode;
   headerCenter: ReactNode;
   headerRight: ReactNode;
+  /** Optional menu row (File / Edit / …) below the header. */
+  menuBar?: ReactNode;
   leftRail: ReactNode;
   mainPane: ReactNode;
   rightPane: ReactNode;
@@ -38,6 +40,16 @@ export function ShellLayout(props: ShellLayoutProps): ReactElement {
         <div className="relative z-0 min-w-0">{props.headerCenter}</div>
         <div className="relative z-10 min-w-0 justify-self-end">{props.headerRight}</div>
       </header>
+
+      {props.menuBar ? (
+        <div
+          className="border-border/50 bg-muted/20 flex h-8 shrink-0 items-center border-b px-2 text-xs"
+          role="navigation"
+          aria-label="Application menu"
+        >
+          {props.menuBar}
+        </div>
+      ) : null}
 
       <main className="flex min-h-0 flex-1 p-2 pb-1" role="main">
         <PanelGroup direction="horizontal" autoSaveId={`${PANEL_STORAGE_KEY}.h`}>

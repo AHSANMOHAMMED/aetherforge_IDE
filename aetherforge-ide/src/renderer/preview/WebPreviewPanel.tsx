@@ -89,15 +89,32 @@ function renderNode(node: CanvasNode, onClick: (id: string) => void, inspected: 
 export default function WebPreviewPanel() {
   const nodes = useCanvasStore((s) => s.nodes);
   const workspacePath = useAppStore((s) => s.workspacePath);
-  const [surface, setSurface] = useState<'canvas' | 'live'>('canvas');
+  const [surface, setSurface] = useState<'canvas' | 'live' | 'split'>('canvas');
   const [device, setDevice] = useState<DevicePreset>(DEVICE_PRESETS[2]!);
   const [inspected, setInspected] = useState<string | null>(null);
 
   const inspectedNode = nodes.find((n) => n.id === inspected);
 
+  const canvasStage = (
+    <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto bg-[#070d1a] p-4 sm:p-8">
+      <div
+        style={{ width: device.width, height: device.height }}
+        className="relative shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0B1220] shadow-2xl"
+        onClick={() => setInspected(null)}
+      >
+        {nodes.map((node) => renderNode(node, setInspected, inspected))}
+        {nodes.length === 0 && (
+          <div className="flex h-full items-center justify-center text-sm text-slate-500">
+            Add components on the canvas to preview them here.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex h-full min-h-0 overflow-hidden text-slate-200">
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-slate-900/70 px-4 py-2">
           <div className="flex gap-1">
             <button
@@ -114,8 +131,15 @@ export default function WebPreviewPanel() {
             >
               Live app
             </button>
+            <button
+              type="button"
+              onClick={() => setSurface('split')}
+              className={`rounded px-3 py-1 text-xs ${surface === 'split' ? 'bg-cyan-500/20 text-cyan-200' : 'text-slate-400 hover:bg-white/10'}`}
+            >
+              Side by side
+            </button>
           </div>
-          {surface === 'canvas' ? (
+          {surface === 'canvas' || surface === 'split' ? (
             <>
               <span className="mx-1 hidden h-4 w-px bg-white/10 sm:inline" aria-hidden />
               <span className="text-xs text-slate-400">Device</span>
@@ -146,23 +170,15 @@ export default function WebPreviewPanel() {
           <div className="min-h-0 flex-1">
             <LivePreviewPanel workspacePath={workspacePath} />
           </div>
-        ) : (
-          <>
-            <div className="flex flex-1 items-start justify-center overflow-auto bg-[#070d1a] p-8">
-              <div
-                style={{ width: device.width, height: device.height }}
-                className="relative shrink-0 overflow-hidden rounded-xl border border-white/10 bg-[#0B1220] shadow-2xl"
-                onClick={() => setInspected(null)}
-              >
-                {nodes.map((node) => renderNode(node, setInspected, inspected))}
-                {nodes.length === 0 && (
-                  <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                    Add components on the canvas to preview them here.
-                  </div>
-                )}
-              </div>
+        ) : surface === 'split' ? (
+          <div className="flex min-h-0 flex-1 flex-row gap-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-white/10">{canvasStage}</div>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <LivePreviewPanel workspacePath={workspacePath} />
             </div>
-          </>
+          </div>
+        ) : (
+          canvasStage
         )}
       </div>
 

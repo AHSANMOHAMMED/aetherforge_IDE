@@ -1,6 +1,11 @@
 import type { Edge, Node } from '@xyflow/react';
 
 export type CanvasComponentType =
+  | 'frame'
+  | 'row'
+  | 'column'
+  | 'stack'
+  | 'grid'
   | 'button'
   | 'container'
   | 'text'
@@ -13,7 +18,17 @@ export type CanvasComponentType =
   | 'badge'
   | 'alert'
   | 'modal'
-  | 'navbar';
+  | 'navbar'
+  | 'fab'
+  | 'appbar'
+  | 'bottomnav'
+  | 'chip'
+  | 'radio'
+  | 'slider'
+  | 'progress'
+  | 'imageview'
+  | 'videoview'
+  | 'list';
 
 export type CanvasNodeProps = {
   text?: string;
@@ -32,6 +47,18 @@ export type CanvasNodeProps = {
   targetPageId?: string;
   onClickPrompt?: string;
   onClickHandlerCode?: string;
+  /** Accessible name override for preview / codegen. */
+  ariaLabel?: string;
+  /** Slider / progress lower bound. */
+  min?: number;
+  /** Slider / progress upper bound. */
+  max?: number;
+  /** Slider / progress current value. */
+  value?: number;
+  /** List / select / chip group items. */
+  items?: string[];
+  /** Lucide / Material icon hint for icon-bearing components. */
+  iconName?: string;
 };
 
 export type CanvasNodeData = {
@@ -49,5 +76,7 @@ export type CanvasSerializableNode = {
   label: string;
   x: number;
   y: number;
+  /** React Flow parent id for nested layout. */
+  parentId?: string;
   props: CanvasNodeProps;
 };

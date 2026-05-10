@@ -25,3 +25,24 @@ export async function maybeForwardActivityToTelemetry(
     // ignore network failures
   }
 }
+
+/** Named telemetry events (e.g. `ai.provider.connected`). */
+export async function forwardRendererTelemetry(
+  name: string,
+  properties?: Record<string, string | number | boolean | null>
+): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const airgap = (window as unknown as { __AETHERFORGE_AIRGAP__?: boolean }).__AETHERFORGE_AIRGAP__;
+  if (airgap) return;
+  const session = useAccountStore.getState().session;
+  if (!session) return;
+  const url = new URL('/v1/telemetry/event', getCloudApiBaseUrl());
+  try {
+    await cloudFetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ event: name, properties: properties ?? {} })
+    });
+  } catch {
+    // ignore
+  }
+}

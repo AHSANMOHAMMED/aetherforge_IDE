@@ -71,7 +71,9 @@ export function CanvasPreview(): ReactElement {
             return (
               <button
                 key={node.id}
+                type="button"
                 style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
                 className={props.className ?? 'rounded-md bg-cyan-500 px-3 py-2 text-white'}
                 onClick={() => {
                   if (props.onClickAction === 'navigate' && props.targetPageId) {
@@ -117,15 +119,165 @@ export function CanvasPreview(): ReactElement {
             );
           }
 
-          if (node.data.componentType === 'image') {
+          if (node.data.componentType === 'image' || node.data.componentType === 'imageview') {
             return (
               <img
                 key={node.id}
                 style={style}
                 className={props.className ?? 'rounded-md object-cover'}
                 src={props.src ?? 'https://picsum.photos/420/240'}
-                alt={node.data.label}
+                alt={props.ariaLabel ?? node.data.label}
               />
+            );
+          }
+
+          if (node.data.componentType === 'videoview') {
+            return (
+              <video
+                key={node.id}
+                style={style}
+                className={props.className ?? 'rounded-md bg-black'}
+                aria-label={props.ariaLabel ?? node.data.label}
+                controls
+              />
+            );
+          }
+
+          if (node.data.componentType === 'fab') {
+            return (
+              <button
+                key={node.id}
+                type="button"
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={
+                  props.className ??
+                  'grid h-14 w-14 place-items-center rounded-full bg-cyan-500 text-white shadow-lg'
+                }
+              >
+                +
+              </button>
+            );
+          }
+
+          if (node.data.componentType === 'appbar' || node.data.componentType === 'navbar') {
+            return (
+              <nav
+                key={node.id}
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={
+                  props.className ??
+                  'flex items-center justify-between rounded-lg border border-white/10 bg-slate-900/90 px-4 py-3 text-slate-100'
+                }
+              >
+                <span className="font-semibold">{props.text ?? node.data.label}</span>
+              </nav>
+            );
+          }
+
+          if (node.data.componentType === 'bottomnav') {
+            const items = props.items ?? ['Home', 'Search', 'Profile'];
+            return (
+              <nav
+                key={node.id}
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={
+                  props.className ??
+                  'grid grid-cols-3 items-center rounded-lg border-t border-white/10 bg-slate-900/90 py-2 text-slate-100'
+                }
+              >
+                {items.map((label, i) => (
+                  <span
+                    key={label + i}
+                    className={
+                      i === 0 ? 'text-center text-xs text-cyan-300' : 'text-center text-xs text-slate-400'
+                    }
+                  >
+                    {label}
+                  </span>
+                ))}
+              </nav>
+            );
+          }
+
+          if (node.data.componentType === 'chip') {
+            return (
+              <span
+                key={node.id}
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={
+                  props.className ??
+                  'inline-flex items-center rounded-full border border-cyan-400/40 bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-100'
+                }
+              >
+                {props.text ?? node.data.label}
+              </span>
+            );
+          }
+
+          if (node.data.componentType === 'radio') {
+            return (
+              <label
+                key={node.id}
+                style={style}
+                className={props.className ?? 'flex items-center gap-2 text-sm text-slate-100'}
+              >
+                <input type="radio" defaultChecked={props.checked} readOnly />
+                {props.text ?? node.data.label}
+              </label>
+            );
+          }
+
+          if (node.data.componentType === 'slider') {
+            return (
+              <input
+                key={node.id}
+                type="range"
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={props.className ?? 'w-full accent-cyan-500'}
+                min={props.min ?? 0}
+                max={props.max ?? 100}
+                defaultValue={props.value ?? 0}
+                readOnly
+              />
+            );
+          }
+
+          if (node.data.componentType === 'progress') {
+            return (
+              <progress
+                key={node.id}
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={props.className ?? 'w-full'}
+                max={props.max ?? 100}
+                value={props.value ?? 0}
+              />
+            );
+          }
+
+          if (node.data.componentType === 'list') {
+            const items = props.items ?? ['List item 1', 'List item 2', 'List item 3'];
+            return (
+              <ul
+                key={node.id}
+                style={style}
+                aria-label={props.ariaLabel ?? node.data.label}
+                className={
+                  props.className ??
+                  'divide-y divide-white/10 rounded border border-white/10 bg-slate-900/70 text-sm text-slate-100'
+                }
+              >
+                {items.map((label, i) => (
+                  <li key={label + i} className="px-3 py-2">
+                    {label}
+                  </li>
+                ))}
+              </ul>
             );
           }
 

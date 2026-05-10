@@ -12,6 +12,7 @@ import { autoLayoutGrid, alignNodes, type AlignDirection } from './layout';
 import { elkOrGrid } from './layout-elk';
 import { getPaletteItem } from './library';
 import type { CanvasComponentType, CanvasEdge, CanvasNode, CanvasSerializableNode } from './types';
+import type { CodegenTarget } from './codegen/index';
 import { usePagesStore } from '@/renderer/state/pages-store';
 
 type CanvasStore = {
@@ -19,6 +20,14 @@ type CanvasStore = {
   edges: CanvasEdge[];
   selectedNodeIds: string[];
   previewMode: boolean;
+  codegenTarget: CodegenTarget;
+  snapToGrid: boolean;
+  gridSize: number;
+  blueprintMode: boolean;
+  setCodegenTarget: (target: CodegenTarget) => void;
+  setSnapToGrid: (on: boolean) => void;
+  setGridSize: (n: number) => void;
+  setBlueprintMode: (on: boolean) => void;
   past: CanvasNode[][];
   future: CanvasNode[][];
   clipboard: CanvasNode[];
@@ -52,7 +61,74 @@ type CanvasStore = {
   duplicateSelected: () => void;
   copySelected: () => void;
   pasteClipboard: () => void;
+  reparent: (nodeId: string, newParentId: string | null) => void;
+  alignmentGuides: { vx: number[]; hy: number[] } | null;
+  clearAlignmentGuides: () => void;
 };
+
+function estimateNodeSize(n: CanvasNode): { w: number; h: number } {
+  const p = n.data.props;
+  const { componentType } = n.data;
+  const w = p.width ?? (componentType === 'image' ? 120 : componentType === 'button' ? 100 : 160);
+  const h = p.height ?? (componentType === 'image' ? 80 : 44);
+  return { w, h };
+}
+
+function nodeBounds(n: CanvasNode): { l: number; r: number; t: number; b: number; cx: number; cy: number } {
+  const { w, h } = estimateNodeSize(n);
+  const x = n.position.x;
+  const y = n.position.y;
+  return { l: x, r: x + w, t: y, b: y + h, cx: x + w / 2, cy: y + h / 2 };
+}
+
+const ALIGN_PX = 6;
+
+function computeAlignmentGuides(moving: CanvasNode, others: CanvasNode[]): { vx: number[]; hy: number[] } {
+  const m = nodeBounds(moving);
+  const vx = new Set<number>();
+  const hy = new Set<number>();
+
+  for (const o of others) {
+    if (o.id === moving.id) continue;
+    const b = nodeBounds(o);
+
+    const tryVx = (a: number, c: number) => {
+      if (Math.abs(a - c) < ALIGN_PX) {
+        vx.add(c);
+      }
+    };
+    const tryHy = (a: number, c: number) => {
+      if (Math.abs(a - c) < ALIGN_PX) {
+        hy.add(c);
+      }
+    };
+
+    tryVx(m.l, b.l);
+    tryVx(m.l, b.r);
+    tryVx(m.l, b.cx);
+    tryVx(m.r, b.l);
+    tryVx(m.r, b.r);
+    tryVx(m.r, b.cx);
+    tryVx(m.cx, b.l);
+    tryVx(m.cx, b.r);
+    tryVx(m.cx, b.cx);
+
+    tryHy(m.t, b.t);
+    tryHy(m.t, b.b);
+    tryHy(m.t, b.cy);
+    tryHy(m.b, b.t);
+    tryHy(m.b, b.b);
+    tryHy(m.b, b.cy);
+    tryHy(m.cy, b.t);
+    tryHy(m.cy, b.b);
+    tryHy(m.cy, b.cy);
+  }
+
+  return {
+    vx: [...vx].slice(0, 12),
+    hy: [...hy].slice(0, 12)
+  };
+}
 
 function nextNodeId(componentType: CanvasComponentType): string {
   return `${componentType}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -63,10 +139,16 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedNodeIds: [],
   previewMode: false,
+  codegenTarget: 'react',
+  snapToGrid: true,
+  gridSize: 8,
+  blueprintMode: false,
   past: [],
   future: [],
   clipboard: [],
+  alignmentGuides: null,
 
+  clearAlignmentGuides: () => set({ alignmentGuides: null }),
   pushHistory: () => {
     set((state) => ({
       past: [...state.past.slice(-49), state.nodes],
@@ -105,6 +187,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
         label: n.data.label,
         x: n.position.x,
         y: n.position.y,
+        parentId: n.parentId,
         props: n.data.props
       }));
       localStorage.setItem('aetherforge-canvas-recovery', JSON.stringify(serialized));
@@ -129,6 +212,8 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       id: item.id,
       type: 'default',
       position: { x: item.x, y: item.y },
+      parentId: item.parentId,
+      extent: item.parentId ? ('parent' as const) : undefined,
       data: {
         label: item.label,
         componentType: item.componentType,
@@ -143,9 +228,35 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   onNodesChange: (changes) => {
-    const updatedNodes = applyNodeChanges(changes, get().nodes);
+    const snapToGrid = get().snapToGrid;
+    const gridSize = get().gridSize;
+    const processed = snapToGrid
+      ? changes.map((ch) => {
+          if (ch.type === 'position' && ch.position) {
+            return {
+              ...ch,
+              position: {
+                x: Math.round(ch.position.x / gridSize) * gridSize,
+                y: Math.round(ch.position.y / gridSize) * gridSize
+              }
+            };
+          }
+          return ch;
+        })
+      : changes;
+    const updatedNodes = applyNodeChanges(processed, get().nodes);
     const selectedNodeIds = updatedNodes.filter((node) => node.selected).map((node) => node.id);
-    set({ nodes: updatedNodes, selectedNodeIds });
+    const dragging = updatedNodes.filter((n) => n.dragging);
+    let alignmentGuides: { vx: number[]; hy: number[] } | null = null;
+    if (dragging.length > 0) {
+      const mover = dragging[0]!;
+      const others = updatedNodes.filter((n) => n.id !== mover.id);
+      const g = computeAlignmentGuides(mover, others);
+      if (g.vx.length > 0 || g.hy.length > 0) {
+        alignmentGuides = g;
+      }
+    }
+    set({ nodes: updatedNodes, selectedNodeIds, alignmentGuides });
   },
 
   onEdgesChange: (changes) => {
@@ -173,11 +284,25 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     get().pushHistory();
     const item = getPaletteItem(componentType);
     const activePageId = usePagesStore.getState().activePageId;
+    const { selectedNodeIds, nodes } = get();
+    const layoutParents = new Set<CanvasComponentType>([
+      'frame',
+      'row',
+      'column',
+      'stack',
+      'grid',
+      'container'
+    ]);
+    const parent = nodes.find(
+      (n) => selectedNodeIds.includes(n.id) && layoutParents.has(n.data.componentType)
+    );
     const node: CanvasNode = {
       id: nextNodeId(componentType),
       type: 'default',
       position,
       selected: false,
+      parentId: parent?.id,
+      extent: parent ? ('parent' as const) : undefined,
       data: {
         label: item.label,
         componentType,
@@ -339,6 +464,10 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   },
 
   setPreviewMode: (preview) => set({ previewMode: preview }),
+  setCodegenTarget: (codegenTarget) => set({ codegenTarget }),
+  setSnapToGrid: (snapToGrid) => set({ snapToGrid }),
+  setGridSize: (gridSize) => set({ gridSize: Math.max(4, Math.min(64, gridSize)) }),
+  setBlueprintMode: (blueprintMode) => set({ blueprintMode }),
   duplicateSelected: () => {
     const selected = get().nodes.filter((n) => get().selectedNodeIds.includes(n.id));
     if (selected.length === 0) return;
@@ -377,6 +506,33 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     set((state) => ({
       nodes: [...state.nodes.map((n) => ({ ...n, selected: false })), ...pasted],
       selectedNodeIds: pasted.map((p) => p.id)
+    }));
+  },
+
+  reparent: (nodeId, newParentId) => {
+    const { nodes } = get();
+    const isDescendant = (root: string, target: string): boolean => {
+      const children = nodes.filter((n) => n.parentId === root);
+      for (const c of children) {
+        if (c.id === target) return true;
+        if (isDescendant(c.id, target)) return true;
+      }
+      return false;
+    };
+    if (newParentId && (newParentId === nodeId || isDescendant(nodeId, newParentId))) {
+      return;
+    }
+    get().pushHistory();
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              parentId: newParentId ?? undefined,
+              extent: newParentId ? ('parent' as const) : undefined
+            }
+          : n
+      )
     }));
   }
 }));

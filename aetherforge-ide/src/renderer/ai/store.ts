@@ -6,6 +6,7 @@ import { PROVIDER_DEFAULT_MODEL } from './providers';
 import { useAppStore } from '@/renderer/state/app-store';
 import { getRagAugmentationBlock } from './rag/indexer';
 import { formatMentionContext, parseMentions, stripMentions } from './rag/mention-parser';
+import { resolveAuthToken, startCredentialRefreshScheduler, writeApiKey } from './credentials';
 import type {
   AgentRun,
   AIProviderId,
@@ -16,16 +17,12 @@ import type {
   ToolPermissionDecision,
   ToolPermissionPolicy
 } from './types';
-import { AI_PROVIDER_IDS } from './types';
+import { isAIProviderId } from './types';
 
 const SETTINGS_KEY = 'aetherforge.ai.settings';
 const TOOL_POLICY_KEY = 'aetherforge.ai.toolPolicy';
 const RUN_HISTORY_KEY = 'aetherforge.ai.runHistory.v1';
 const MAX_PERSISTED_RUNS = 60;
-
-function isAIProviderId(value: string): value is AIProviderId {
-  return (AI_PROVIDER_IDS as readonly string[]).includes(value);
-}
 
 async function loadPersistedRuns(): Promise<AgentRun[]> {
   try {
@@ -72,6 +69,7 @@ type AIState = {
   sessionToolGrants: Record<GuardedToolName, boolean>;
   permissionAuditLog: ToolPermissionAuditEntry[];
   initialize: () => Promise<void>;
+  hydrateProviderSecrets: (providerId?: AIProviderId) => Promise<void>;
   setSettings: (partial: Partial<ProviderSettings>) => void;
   setToolPolicy: (tool: GuardedToolName, policy: ToolPermissionPolicy) => void;
   grantSessionTool: (tool: GuardedToolName) => void;
@@ -129,8 +127,6 @@ function saveSettings(settings: ProviderSettings): void {
   void _apiKey;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(persistable));
 }
-
-const API_KEY_SECRET = 'aetherforge.ai.apiKey';
 
 const DEFAULT_TOOL_POLICIES: Record<GuardedToolName, ToolPermissionPolicy> = {
   write_file: 'always-ask',
@@ -214,30 +210,41 @@ export const useAIStore = create<AIState>((set, get) => ({
     }
 
     try {
-      const [persistedRuns, secretResult] = await Promise.all([
-        loadPersistedRuns(),
-        window.electronAPI.getSecret({ key: API_KEY_SECRET })
-      ]);
+      const persistedRuns = await loadPersistedRuns();
+      const provider = get().settings.provider;
+      const token = await resolveAuthToken(provider);
       set((state) => ({
         initialized: true,
         runs: persistedRuns.length > 0 ? persistedRuns : state.runs,
         settings: {
           ...state.settings,
-          apiKey: secretResult.ok ? (secretResult.value ?? '') : ''
+          apiKey: token
         }
       }));
+      startCredentialRefreshScheduler();
     } catch {
       set({ initialized: true });
     }
   },
 
+  hydrateProviderSecrets: async (providerId) => {
+    const p = providerId ?? get().settings.provider;
+    const token = await resolveAuthToken(p);
+    set((state) => (state.settings.provider === p ? { settings: { ...state.settings, apiKey: token } } : {}));
+  },
+
   setSettings: (partial) => {
     set((state) => {
       const provider = partial.provider ?? state.settings.provider;
+      let apiKey = partial.apiKey !== undefined ? partial.apiKey : state.settings.apiKey;
+      if (partial.provider !== undefined && partial.apiKey === undefined) {
+        apiKey = '';
+      }
       const next: ProviderSettings = {
         ...state.settings,
         ...partial,
         provider,
+        apiKey,
         model:
           partial.model ??
           (partial.provider && !partial.model
@@ -247,15 +254,12 @@ export const useAIStore = create<AIState>((set, get) => ({
       saveSettings(next);
 
       if (partial.apiKey !== undefined) {
-        if (partial.apiKey.trim().length > 0) {
-          void window.electronAPI.setSecret({ key: API_KEY_SECRET, value: partial.apiKey });
-        } else {
-          void window.electronAPI.deleteSecret({ key: API_KEY_SECRET });
-        }
+        void writeApiKey(provider, partial.apiKey);
       }
 
       return { settings: next };
     });
+    void get().hydrateProviderSecrets();
   },
 
   setToolPolicy: (tool, policy) => {

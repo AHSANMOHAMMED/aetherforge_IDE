@@ -1,23 +1,7 @@
-export type AIProviderId =
-  | 'openai'
-  | 'claude'
-  | 'grok'
-  | 'ollama'
-  | 'gemini'
-  | 'mistral'
-  | 'openrouter'
-  | 'groq';
+import type { AIProviderId } from './registry';
 
-export const AI_PROVIDER_IDS: readonly AIProviderId[] = [
-  'openai',
-  'claude',
-  'grok',
-  'gemini',
-  'mistral',
-  'openrouter',
-  'groq',
-  'ollama'
-] as const;
+export type { AIProviderId, AuthMethod, ProviderDescriptor, ProviderFamily } from './registry';
+export { AI_PROVIDER_IDS, getProvider, isAIProviderId, PROVIDERS } from './registry';
 
 export type AgentRole = 'planner' | 'coder' | 'reviewer';
 

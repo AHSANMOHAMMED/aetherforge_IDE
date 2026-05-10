@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { useAppStore } from '@/renderer/state/app-store';
+import { useCanvasStore } from '@/renderer/canvas/store';
 import type { FileNode } from '@/common/ipc';
 import { useModalStore } from '@/renderer/state/modal-store';
 import { validateFileSystemName } from '@/renderer/lib/validators';
@@ -271,6 +272,35 @@ export function CommandPalette(): ReactElement | null {
         label: 'Toggle Terminal',
         hint: 'Cmd/Ctrl+J',
         action: () => toggleTerminal()
+      },
+      {
+        id: 'open-visual-canvas',
+        label: 'Open Visual Canvas',
+        action: () => {
+          useAppStore.getState().ensureCanvasTab();
+          useAppStore.getState().setMode('visual');
+        }
+      },
+      {
+        id: 'open-runtime-preview',
+        label: 'Open Runtime Preview',
+        action: () => {
+          useAppStore.getState().setMode('preview');
+        }
+      },
+      {
+        id: 'canvas-embedded-preview-on',
+        label: 'Canvas: Show embedded live preview',
+        action: () => {
+          useCanvasStore.getState().setPreviewMode(true);
+        }
+      },
+      {
+        id: 'canvas-embedded-preview-off',
+        label: 'Canvas: Hide embedded live preview',
+        action: () => {
+          useCanvasStore.getState().setPreviewMode(false);
+        }
       }
     ];
 
@@ -332,7 +362,13 @@ export function CommandPalette(): ReactElement | null {
     );
     const fileGroup = commandItems.filter((item) => item.id === 'save-active-file');
     const viewGroup = commandItems.filter(
-      (item) => item.id === 'toggle-auto-save' || item.id === 'toggle-terminal'
+      (item) =>
+        item.id === 'toggle-auto-save' ||
+        item.id === 'toggle-terminal' ||
+        item.id === 'open-visual-canvas' ||
+        item.id === 'open-runtime-preview' ||
+        item.id === 'canvas-embedded-preview-on' ||
+        item.id === 'canvas-embedded-preview-off'
     );
     const pluginGroup = commandItems.filter((item) => item.id.startsWith('plugin:'));
 

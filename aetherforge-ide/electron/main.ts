@@ -42,6 +42,7 @@ import {
   SecretsSetMasterPayloadSchema,
   SecretsUnlockPayloadSchema,
   TelemetryEventPayloadSchema,
+  OAuthStartLoopbackPayloadSchema,
   TerminalCreatePayloadSchema,
   TerminalDisposePayloadSchema,
   TerminalResizePayloadSchema,
@@ -79,6 +80,7 @@ import * as dapService from './services/dap.service';
 import * as previewService from './services/preview.service';
 import * as previewViewService from './services/preview-view.service';
 import * as extensionHostService from './services/extension-host.service';
+import { startOAuthLoopback, stopOAuthLoopback } from './services/oauth-loopback.service';
 import { exec as execCb } from 'node:child_process';
 import { promisify } from 'node:util';
 import { sanitizeCommandOutput, validateCommand } from './command-safety';
@@ -542,6 +544,27 @@ function registerIpcHandlers(window: BrowserWindow): void {
   // Telemetry
   registerHandler(IPCChannels.TelemetryEvent, TelemetryEventPayloadSchema, async (payload) => {
     logger.info('telemetry', payload.name, payload.properties ?? {});
+    return { ok: true } as const;
+  });
+
+  // OAuth / external browser
+  registerHandler(IPCChannels.OAuthStartLoopback, OAuthStartLoopbackPayloadSchema, async (payload, event) => {
+    try {
+      const r = await startOAuthLoopback(event.sender, payload.expectedState);
+      return { ok: true as const, port: r.port, redirectUri: r.redirectUri };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : String(e) };
+    }
+  });
+  registerHandler(IPCChannels.OAuthStopLoopback, null, async () => {
+    stopOAuthLoopback();
+    return { ok: true } as const;
+  });
+  registerHandler(IPCChannels.OpenExternalUrl, null, async (url: unknown) => {
+    if (typeof url !== 'string' || !(url.startsWith('https://') || url.startsWith('http://'))) {
+      return { ok: false, error: 'Invalid URL' } as const;
+    }
+    await shell.openExternal(url);
     return { ok: true } as const;
   });
 }

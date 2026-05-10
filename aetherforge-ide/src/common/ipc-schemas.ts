@@ -452,4 +452,8 @@ export const TelemetryEventPayloadSchema = z.object({
   properties: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional()
 });
 
+export const OAuthStartLoopbackPayloadSchema = z.object({
+  expectedState: z.string().min(8).max(512)
+});
+
 export type ZodSchemaFor<T> = z.ZodType<T>;

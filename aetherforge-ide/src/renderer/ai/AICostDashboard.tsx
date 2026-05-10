@@ -1,7 +1,6 @@
 import { useEffect, useMemo, type ReactElement } from 'react';
 import { useAIStore } from './store';
 import { estimateCostUsdRough } from './usage';
-import type { AIProviderId } from './types';
 
 const formatUsd = (value: number | undefined): string => {
   if (value == null || Number.isNaN(value)) {
@@ -22,7 +21,7 @@ export function AICostDashboard(): ReactElement {
   }, [initialize]);
 
   const stats = useMemo(() => {
-    const byProvider = new Map<AIProviderId, { runs: number; tokens: number; cost: number }>();
+    const byProvider = new Map<string, { runs: number; tokens: number; cost: number }>();
     let totalRuns = 0;
     let totalTokens = 0;
     let totalCost = 0;
